@@ -1,10 +1,4 @@
-"""
-LangGraph setup for PakAssist.
-
-The graph currently has a single node: the Planner Agent, which
-interprets the user's raw input and populates intent/service_type/
-next_step. No conditional routing exists yet — that's a later milestone.
-"""
+"""LangGraph workflow for PakAssist."""
 from langgraph.graph import StateGraph, START, END
 
 from backend.agents.planner import run_planner
@@ -21,10 +15,50 @@ def _planner_node(state: PakAssistState) -> dict:
     }
 
 
+def _knowledge_node(state: PakAssistState) -> dict:
+    """Placeholder for the future knowledge capability."""
+    return {"response": "Request routed to knowledge."}
+
+
+def _action_node(state: PakAssistState) -> dict:
+    """Placeholder for the future action capability."""
+    return {"response": "Request routed to action."}
+
+
+def _clarification_node(state: PakAssistState) -> dict:
+    """Ask for clarification when the request cannot be routed safely."""
+    return {"response": "Please clarify which government service you need."}
+
+
+def _route_after_planner(state: PakAssistState) -> str:
+    """Select a downstream node from the Planner's validated decision."""
+    if state["intent"] == "unknown" or state["service_type"] == "unknown":
+        return "clarification"
+    if state["next_step"] == "knowledge":
+        return "knowledge"
+    if state["next_step"] == "action":
+        return "action"
+    return "clarification"
+
+
 def build_graph():
     """Build and compile the PakAssist graph."""
     graph_builder = StateGraph(PakAssistState)
     graph_builder.add_node("planner", _planner_node)
+    graph_builder.add_node("knowledge", _knowledge_node)
+    graph_builder.add_node("action", _action_node)
+    graph_builder.add_node("clarification", _clarification_node)
     graph_builder.add_edge(START, "planner")
-    graph_builder.add_edge("planner", END)
+    graph_builder.add_conditional_edges(
+        "planner",
+        _route_after_planner,
+        {
+            "knowledge": "knowledge",
+            "action": "action",
+            "clarification": "clarification",
+        },
+    )
+    graph_builder.add_edge("knowledge", END)
+    graph_builder.add_edge("action", END)
+    graph_builder.add_edge("clarification", END)
     return graph_builder.compile()

@@ -6,3 +6,4 @@ class PakAssistState(TypedDict):
     intent: str
     service_type: str
     next_step: str
+    response: str

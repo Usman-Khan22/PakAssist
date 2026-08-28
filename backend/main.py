@@ -22,6 +22,7 @@ def main():
         "intent": "",
         "service_type": "",
         "next_step": "",
+        "response": "",
     }
 
     try:

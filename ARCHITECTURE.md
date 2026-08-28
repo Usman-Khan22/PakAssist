@@ -1,196 +1,178 @@
-# PakAssist — Architecture
+# PakAssist - Architecture
 
-## What is PakAssist?
+## Implementation Status
 
-PakAssist is an agentic AI assistant designed to help Pakistani citizens
-understand and navigate public/government services (for example, driving
-licenses, passports, and appointments). It is being built incrementally as
-a hackathon project, with the backend foundation established first and
-additional capabilities layered on over time.
+### Implemented
 
-This document describes the **current** architecture as implemented today,
-and separately outlines the **planned** architecture the project is being
-built toward. The two are clearly distinguished throughout.
+PakAssist currently has a backend CLI with one real agent: the Planner
+Agent. The Planner classifies a user's message into structured planning
+fields, and LangGraph uses that decision to select a workflow path.
 
----
-
-## Current Architecture
-
-At this stage, PakAssist consists of a minimal backend only. There is no
-frontend, no API layer, no database, and no real agents yet — the current
-code exists to establish a working LangGraph foundation that future work
-will build on.
+The current repository contains:
 
 ```
 backend/
-├── main.py            # CLI entry point
-├── agents/             # Empty — reserved for future agent implementations
+├── main.py                 # CLI entry point
+├── agents/
+│   └── planner.py          # Gemini-backed Planner Agent
 └── graph/
-    ├── state.py         # Shared LangGraph state definition
-    └── graph.py         # LangGraph graph construction
+    ├── state.py            # Shared LangGraph state
+    └── graph.py            # LangGraph construction and routing
 ```
 
-### Current Request Flow
+There is no API, frontend, database, RAG system, real action execution,
+appointment booking, document processing, voice support, or full
+Urdu/regional-language feature.
 
-The system currently runs as a terminal (CLI) program, not a service:
+### Planned
+
+The routing structure is intended to provide connection points for future
+specialized capabilities. Those capabilities are not implemented yet.
+
+## Current Request Flow
+
+The application handles one request from the terminal:
 
 ```
-User types input in terminal
-        │
-        ▼
+User enters a message
+        |
+        v
 backend/main.py
-  - loads environment variables (.env)
-  - builds the graph
-  - creates initial PakAssistState
+  - loads .env values
+  - builds the compiled graph
+  - creates PakAssistState
   - invokes the graph
-        │
-        ▼
-LangGraph graph (backend/graph/graph.py)
-  START → passthrough → END
-        │
-        ▼
-Resulting state printed to terminal
+        |
+        v
+LangGraph: START -> planner
+        |
+        v
+Planner Agent calls Gemini and validates PlannerOutput
+        |
+        v
+Conditional route based on next_step and known fields
+        |
+   +----+-------------+----------------+
+   |                  |                |
+knowledge          action       clarification
+   |                  |                |
+   +------------------+----------------+
+                      |
+                      v
+                    END
+        |
+        v
+Updated state is printed to the terminal
 ```
 
-There is no HTTP/API layer, no persistent storage, and no external
-service calls in the current flow.
+`main.py` reports a `PlannerError` as a CLI message. The application has no
+HTTP endpoint and does not persist data.
 
-### Current LangGraph Structure
+## Planner Agent
 
-The graph is a `StateGraph` built on `PakAssistState`, with a single
-placeholder node:
+`backend/agents/planner.py` defines `PlannerOutput` with three fields:
 
-```
-START → passthrough → END
-```
+- `intent`: the user's high-level goal, such as `apply_for_service`,
+  `renew_service`, or `book_appointment`.
+- `service_type`: the government service, such as `driving_license` or
+  `passport`, or `unknown` when it is not clear.
+- `next_step`: one of `knowledge`, `action`, `appointment`, or `clarify`.
 
-- **`passthrough`** is a temporary node that returns the state unchanged.
-- It exists solely to verify that the LangGraph wiring (state → node →
-  compiled graph) works end to end.
-- It does **not** perform intent detection, routing, or any AI reasoning.
+The Planner prompt covers English, Urdu, and Roman Urdu input and instructs
+Gemini to use conservative classifications. It prefers `unknown` and
+`clarify` when the request is ambiguous. This prompt does not constitute a
+separate Urdu or regional-language feature.
 
-### Role of `PakAssistState`
+## LLM and Structured Output
 
-Defined in `backend/graph/state.py` as a `TypedDict`, `PakAssistState` is
-the shared state object passed between nodes in the graph. All nodes read
-from and/or write to this state.
+The Planner uses the `google-genai` client directly. It reads the API key
+from `GEMINI_API_KEY` and the model from `GEMINI_MODEL`, defaulting to
+`gemini-2.5-flash`. No credentials are hardcoded.
 
-Current fields:
+Gemini is called with native structured JSON output:
 
-| Field          | Purpose (current)                                   |
-|----------------|------------------------------------------------------|
-| `user_input`   | The raw text entered by the user                     |
-| `intent`       | Reserved for future intent classification            |
-| `service_type` | Reserved for future service routing (e.g. license)   |
-| `next_step`    | Reserved for future workflow/routing decisions       |
+- `response_mime_type="application/json"`
+- `response_schema=PlannerOutput`
+- no tools
+- `automatic_function_calling.disable=True`
 
-At this stage, only `user_input` is populated meaningfully; the other
-fields are initialized empty and are not yet used by any logic.
+The response text is parsed with `json.loads` and validated with
+`PlannerOutput.model_validate`. API failures, empty responses, invalid JSON,
+and schema validation failures become `PlannerError`.
 
-### Role of `main.py`
+AFC is explicitly disabled because this Planner uses a direct
+`models.generate_content` call and has no tools or chat session. The current
+approach is native Gemini JSON schema output, not automatic function calling.
 
-`backend/main.py` is the current application entry point. It:
+## Shared State
 
-1. Loads environment variables via `python-dotenv`.
-2. Builds the LangGraph workflow via `build_graph()`.
-3. Accepts a single user message from the terminal.
-4. Constructs the initial `PakAssistState`.
-5. Invokes the compiled graph with that state.
-6. Prints the resulting state to the terminal.
+`backend/graph/state.py` defines `PakAssistState` as a `TypedDict`:
 
-It is intentionally simple — a CLI harness for exercising the graph, not
-a production entry point.
+| Field | Current purpose |
+|---|---|
+| `user_input` | Raw terminal input passed to the Planner |
+| `intent` | Planner-produced high-level goal |
+| `service_type` | Planner-produced service or `unknown` |
+| `next_step` | Planner-produced workflow decision |
+| `response` | Message written by the selected terminal workflow node |
 
-### Role of `graph.py`
+`main.py` initializes all fields. The Planner node updates `intent`,
+`service_type`, and `next_step`; the selected downstream node updates
+`response`.
 
-`backend/graph/graph.py` is responsible for constructing and compiling the
-LangGraph `StateGraph`. Currently it defines:
+## Current Graph Nodes and Routing
 
-- One node (`passthrough`) that returns state unchanged.
-- The graph edges: `START → passthrough → END`.
-- A `build_graph()` function that returns the compiled graph.
-
-This file is the intended location for wiring in future agent nodes and
-routing logic as they are implemented.
-
-### Current Limitations
-
-- No real agents exist — the graph does no AI reasoning yet.
-- No API layer (e.g. FastAPI) — the app only runs via the terminal.
-- No frontend integration.
-- No RAG, document understanding, or knowledge retrieval.
-- No persistent storage or database.
-- No appointment booking or service-center lookup.
-- No Urdu/regional language or voice support.
-- No authentication or multi-user handling.
-
----
-
-## Planned Architecture (Not Yet Implemented)
-
-The following describes the intended direction of the project. **None of
-this is implemented yet** — it is documented here to give new developers
-context on where the current foundation is headed.
-
-### Planned High-Level Flow
+`backend/graph/graph.py` builds this graph:
 
 ```
-Frontend
-   │
-   ▼
-Backend / API layer
-   │
-   ▼
-LangGraph workflow
-   │
-   ├── Planner Agent        (decides which agent(s)/steps to invoke)
-   ├── Knowledge/RAG Agent   (retrieves info from official sources)
-   ├── Action Agent          (performs actions / tool calls)
-   └── Appointment Agent     (handles appointment-related workflows)
-   │
-   ▼
-Response back to frontend
+START -> planner -> conditional route -> knowledge/action/clarification -> END
 ```
 
-### How Planned Components Are Expected to Fit In
+- `planner`: calls the Planner Agent and writes its three structured fields
+  into graph state.
+- `knowledge`: minimal routing placeholder that writes
+  `Request routed to knowledge.` It does not perform RAG or retrieve data.
+- `action`: minimal routing placeholder that writes
+  `Request routed to action.` It does not execute actions.
+- `clarification`: writes a request for the user to clarify the government
+  service.
+- conditional routing: sends known `knowledge` decisions to `knowledge`,
+  known `action` decisions to `action`, and unknown/unclear decisions to
+  `clarification`. The currently valid `appointment` label also falls back
+  to clarification because appointment handling is not implemented.
 
-- **Planner Agent**: Expected to be added as a node (or set of nodes) in
-  `graph.py`, likely replacing the current `passthrough` node. It would
-  read `user_input`, populate `intent`/`service_type`, and decide
-  `next_step` to route the state to the appropriate downstream agent.
+The graph tests mock the Planner and verify the knowledge, action, and
+clarification paths without making network calls.
 
-- **Knowledge/RAG Agent**: Expected to be introduced as a separate agent
-  module under `backend/agents/`, invoked by the Planner Agent when a
-  user's query requires information from official/government sources.
+## Current Limitations
 
-- **Action Agent**: Expected to handle tool-calling for concrete actions
-  (e.g. form submission, status checks), added as another node/agent
-  under `backend/agents/`.
+- The CLI handles one request at a time.
+- Knowledge and action nodes are routing placeholders only.
+- Appointment routing has no appointment node and falls back to clarification.
+- There is no real information retrieval, action execution, or appointment
+  booking.
+- There is no API, frontend, database, authentication, or multi-user state.
+- There is no document processing or voice interaction.
+- Urdu and Roman Urdu are accepted as possible Planner input, but there is
+  no dedicated regional-language or voice pipeline.
 
-- **Appointment Agent**: Expected to manage appointment-related workflows
-  (e.g. booking, checking slots), likely requiring its own state fields
-  and, eventually, persistent storage.
+## Planned Architecture
 
-- **Document Understanding**: Expected to be added as a capability that
-  processes uploaded documents (e.g. ID cards, forms) — likely a new
-  agent or tool integrated into the graph, with new state fields for
-  document data.
+Future work may connect specialized agents to the existing conditional
+routing points:
 
-- **Urdu/regional language & voice interaction**: Expected to affect the
-  input/output layer (parsing user input, generating responses) rather
-  than the graph structure itself; likely implemented as pre/post-processing
-  around the graph invocation.
+```
+Frontend/API (planned)
+        |
+        v
+LangGraph Planner
+        |
+        +--> Knowledge capability (planned RAG/retrieval)
+        +--> Action capability (planned tool/action execution)
+        +--> Appointment capability (planned booking workflow)
+        +--> Clarification path
+```
 
-- **Frontend**: The `frontend/` directory is currently empty. Once an API
-  layer exists on the backend, the frontend is expected to communicate
-  with it over HTTP rather than calling backend code directly.
-
-- **Persistent application data**: Currently there is no database. Future
-  stages handling appointments, user history, or documents will likely
-  require introducing persistent storage, to be decided when that work
-  begins.
-
-Each of these will be added incrementally, in line with the project's
-existing modular structure — new agents under `backend/agents/`, new graph
-nodes/edges in `graph.py`, and new state fields in `state.py` only as
-genuinely needed.
+An API, frontend, persistence, document understanding, authentication,
+regional-language processing, and voice interaction are all planned only.
+They must not be treated as implemented until corresponding code exists.

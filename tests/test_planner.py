@@ -8,6 +8,7 @@ inputs, not model quality.
 from unittest.mock import MagicMock, patch
 
 from backend.agents.planner import PlannerOutput, run_planner
+from backend.graph.graph import build_graph
 
 
 def _mock_response(intent: str, service_type: str, next_step: str) -> MagicMock:
@@ -72,3 +73,52 @@ def test_ambiguous_request(mock_get_client):
     result = run_planner("hello")
 
     assert result.next_step == "clarify"
+
+
+def _graph_state(user_input: str) -> dict:
+    return {
+        "user_input": user_input,
+        "intent": "",
+        "service_type": "",
+        "next_step": "",
+        "response": "",
+    }
+
+
+@patch("backend.graph.graph.run_planner")
+def test_graph_routes_to_knowledge(mock_run_planner):
+    mock_run_planner.return_value = PlannerOutput(
+        intent="apply_for_service",
+        service_type="passport",
+        next_step="knowledge",
+    )
+
+    result = build_graph().invoke(_graph_state("What documents do I need?"))
+
+    assert result["response"] == "Request routed to knowledge."
+
+
+@patch("backend.graph.graph.run_planner")
+def test_graph_routes_to_action(mock_run_planner):
+    mock_run_planner.return_value = PlannerOutput(
+        intent="apply_for_service",
+        service_type="driving_license",
+        next_step="action",
+    )
+
+    result = build_graph().invoke(_graph_state("Apply for a license"))
+
+    assert result["response"] == "Request routed to action."
+
+
+@patch("backend.graph.graph.run_planner")
+def test_graph_routes_unclear_request_to_clarification(mock_run_planner):
+    mock_run_planner.return_value = PlannerOutput(
+        intent="unknown",
+        service_type="unknown",
+        next_step="clarify",
+    )
+
+    result = build_graph().invoke(_graph_state("Hello"))
+
+    assert result["response"] == "Please clarify which government service you need."
