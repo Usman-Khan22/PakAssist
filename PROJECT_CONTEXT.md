@@ -1,121 +1,108 @@
-# PakAssist — Project Context for AI Coding Agents
+# PakAssist - Project Context for AI Coding Agents
 
-This document is written for AI coding agents (Claude, GitHub Copilot,
-Antigravity, etc.) working on this repository. Read it before making any
-changes.
+This document is concise context for Copilot Agent, Claude, Antigravity, and
+other coding agents working in this repository.
 
-## Project Purpose
+## Purpose
 
-PakAssist is an agentic AI assistant that helps Pakistani citizens
-understand and navigate public/government services (e.g. driving
-licenses, passports, appointments). It is being built incrementally as a
-hackathon project.
+PakAssist helps Pakistani citizens understand and navigate public/government
+services such as driving licenses and passports. Development is incremental.
 
-## Current Implementation Status
+## Current Status
 
-The backend foundation only. There are:
+Implemented backend-only CLI milestone:
 
-- No real AI agents yet.
-- No API layer.
-- No frontend implementation.
-- No RAG, document processing, or appointment booking.
-- No database.
+1. Planner Agent
+2. Pydantic-validated structured Planner output
+3. LangGraph integration
+4. Conditional routing from the Planner's `next_step`
+5. Clarification path for unknown or unclear requests
 
-The graph currently contains a single temporary passthrough node used to
-verify the LangGraph wiring works. See `ARCHITECTURE.md` for full details.
-
-## Current Architecture
+The graph is no longer `START -> planner -> END`:
 
 ```
-backend/main.py  →  backend/graph/graph.py (StateGraph)  →  backend/graph/state.py (PakAssistState)
+START -> planner -> knowledge/action/clarification -> END
 ```
 
-- `main.py`: CLI entry point. Loads env vars, builds the graph, takes one
-  terminal input, invokes the graph, prints the result.
-- `graph.py`: Builds the LangGraph `StateGraph`. Currently: `START → passthrough → END`.
-- `state.py`: Defines `PakAssistState` (TypedDict) with fields
-  `user_input`, `intent`, `service_type`, `next_step`.
-- `agents/`: Empty. Reserved for future agent modules.
-- `frontend/`: Empty. Not yet started.
+`knowledge` and `action` are minimal routing placeholders. They only write a
+routing message; they are not RAG or real action agents. There is no
+appointment node, so `appointment` currently falls back to clarification.
 
 ## Important Files
 
-| File | Purpose |
-|---|---|
-| `backend/main.py` | Application entry point |
-| `backend/graph/graph.py` | Graph construction and compilation |
-| `backend/graph/state.py` | Shared state definition |
-| `backend/agents/` | Future location for agent implementations |
-| `requirements.txt` | Python dependencies |
-| `ARCHITECTURE.md` | Full technical architecture (current + planned) |
+- `backend/main.py`: Loads `.env`, accepts one CLI message, invokes the graph,
+  and reports `PlannerError`.
+- `backend/agents/planner.py`: Calls Gemini and validates `PlannerOutput`.
+- `backend/graph/graph.py`: Defines Planner, placeholder terminal nodes, and
+  conditional routing.
+- `backend/graph/state.py`: Defines shared `PakAssistState`.
+- `tests/test_planner.py`: Offline mocked Planner and graph routing tests.
+- `tests/conftest.py`: Adds the project root to `sys.path` for pytest.
+- `requirements.txt`: Runtime and test dependencies.
+- `ARCHITECTURE.md`: Detailed implemented/planned architecture.
 
-## Development Principles
+## Current Workflow and State
 
-- Build incrementally — one stage at a time.
-- Keep the architecture modular and simple.
-- Do not build ahead of what has been explicitly requested.
-- Prefer clarity and readability over cleverness.
+`main.py` initializes `user_input`, `intent`, `service_type`, `next_step`, and
+`response`. The Planner node fills the three classification fields. Routing
+uses known `intent` and `service_type` plus `next_step`:
 
-## Coding Guidelines
+- known `knowledge` -> knowledge placeholder
+- known `action` -> action placeholder
+- unknown/unclear fields or unsupported route -> clarification node
 
-- Python, beginner-readable code.
-- Comment only where something is non-obvious.
-- Avoid large amounts of boilerplate.
-- Do not create placeholder/fake functionality just to look complete.
-- Keep state (`PakAssistState`) minimal — add fields only when a real,
-  current need exists, not speculatively for future features.
+The selected terminal node fills `response` before the state is printed.
 
-## Architecture Constraints
+## Gemini and AFC Constraint
 
-- New agents belong under `backend/agents/`.
-- New graph nodes/edges belong in `backend/graph/graph.py`.
-- New state fields belong in `backend/graph/state.py`, added only when
-  genuinely needed by current work.
-- No API framework (e.g. FastAPI) until it is genuinely required.
-- No database until a feature genuinely requires persistence.
-- Frontend and backend remain decoupled; frontend should talk to the
-  backend over an API layer once one exists — not import backend code
-  directly.
+The Planner uses the direct `google-genai` client. It reads `GEMINI_API_KEY`
+from the environment and uses `GEMINI_MODEL`, defaulting to
+`gemini-2.5-flash`. Never hardcode credentials.
 
-## Git / Branching Rules
+Structured output uses Gemini native JSON schema settings:
 
-- Do not commit directly to `main`.
-- Work on feature branches.
-- Keep commits focused (one logical change per commit).
-- Use conventional commit messages (e.g. `feat:`, `fix:`, `docs:`, `chore:`).
+- `response_mime_type="application/json"`
+- `response_schema=PlannerOutput`
+- no tools
+- `automatic_function_calling.disable=True`
 
-## Rules for AI Coding Agents
-
-- Implement only the requested task — nothing more.
-- Do not implement future/planned features unless explicitly requested.
-- Do not modify unrelated files.
-- Do not unnecessarily refactor existing code.
-- Reuse the existing architecture rather than introducing new patterns.
-- Keep components modular.
-- Prefer simple, maintainable implementations over complex ones.
-- Explain any important architectural changes made.
-- Test changes before considering the task complete.
-- Never expose or commit API keys/secrets (use `.env`, which is
-  git-ignored).
-- Do not commit directly to `main` — use feature branches.
-- Keep commits focused and use conventional commit messages.
+The AFC issue was resolved by explicitly disabling automatic function calling.
+Do not reintroduce AFC or tool calling for the direct
+`models.generate_content` call. The Planner needs text-in/JSON-out structured
+classification. It parses the response with `json.loads` and validates it
+with Pydantic before graph state is updated.
 
 ## Current Milestone
 
-Backend foundation setup (LangGraph wiring verified end to end via a CLI
-entry point and a passthrough node).
+Prove that the Planner controls LangGraph workflow selection while keeping
+downstream capabilities as minimal placeholders.
 
-## Completed Work
+## Next Planned Milestone
 
-- Project structure (`backend/`, `agents/`, `graph/`, `frontend/`) established.
-- `PakAssistState` defined.
-- Minimal LangGraph graph (`START → passthrough → END`) built and verified to compile/run.
-- CLI entry point (`main.py`) wired to the graph.
-- `requirements.txt`, `README.md`, `.gitignore` set up.
+Connect one explicitly selected downstream capability to its route, starting
+with real knowledge retrieval only when that feature is scheduled. Do not
+build RAG, real actions, appointments, an API, frontend, database, document
+processing, voice, or dedicated Urdu/regional-language handling as part of
+this routing milestone.
 
-## Next Planned Work
+## Development Rules
 
-Not yet scheduled/confirmed — do not begin without explicit instruction.
-Likely candidates based on the project vision (see `ARCHITECTURE.md`):
-a Planner Agent, intent/service routing, and eventually Knowledge/RAG,
-Action, and Appointment agents.
+- Implement only the requested task.
+- Do not rebuild the Planner, structured-output path, or routing already here.
+- Do not implement planned features without explicit instruction.
+- Keep changes simple, beginner-readable, and limited to relevant files.
+- Preserve the Planner -> LangGraph design and existing state contract.
+- Add state fields only for a real current requirement.
+- Keep agents under `backend/agents/` and graph changes under
+  `backend/graph/`.
+- Do not add an API framework or database until genuinely required.
+- Do not expose or commit API keys or other secrets; use `.env`.
+- Run the tests before considering a change complete.
+
+## Git and Branching Rules
+
+- Do not commit directly to `main`.
+- Work on feature branches.
+- Keep commits focused on one logical change.
+- Use conventional commit messages such as `feat:`, `fix:`, `docs:`, and
+  `chore:`.
