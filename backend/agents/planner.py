@@ -93,9 +93,6 @@ def run_planner(user_input: str) -> PlannerOutput:
                 system_instruction=_SYSTEM_PROMPT,
                 response_mime_type="application/json",
                 response_schema=PlannerOutput,
-                # No `tools` here, and AFC explicitly disabled below since
-                # there is nothing for the SDK to auto-call and no chat
-                # session — see module docstring.
                 automatic_function_calling=types.AutomaticFunctionCallingConfig(
                     disable=True
                 ),
