@@ -1,6 +1,7 @@
 """LangGraph workflow for PakAssist."""
 from langgraph.graph import StateGraph, START, END
 
+from backend.agents.knowledge import knowledge_agent
 from backend.agents.planner import run_planner
 from backend.graph.state import PakAssistState
 
@@ -16,8 +17,8 @@ def _planner_node(state: PakAssistState) -> dict:
 
 
 def _knowledge_node(state: PakAssistState) -> dict:
-    """Placeholder for the future knowledge capability."""
-    return {"response": "Request routed to knowledge."}
+    """Executes the Multimodal RAG Knowledge Agent."""
+    return knowledge_agent(state)
 
 
 def _action_node(state: PakAssistState) -> dict:
