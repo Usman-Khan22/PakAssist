@@ -1,108 +1,185 @@
 # PakAssist - Project Context for AI Coding Agents
 
-This document is concise context for Copilot Agent, Claude, Antigravity, and
-other coding agents working in this repository.
-
 ## Purpose
 
-PakAssist helps Pakistani citizens understand and navigate public/government
-services such as driving licenses and passports. Development is incremental.
+PakAssist is a backend-only assistant that helps Pakistani citizens navigate
+government services. Current service coverage is passport and driving license.
+Treat the repository implementation as the source of truth and develop
+incrementally.
 
-## Current Status
+## Current Implementation
 
-Implemented backend-only CLI milestone:
+Completed capabilities:
 
-1. Planner Agent
-2. Pydantic-validated structured Planner output
-3. LangGraph integration
-4. Conditional routing from the Planner's `next_step`
-5. Clarification path for unknown or unclear requests
+- repository and backend foundation;
+- shared LangGraph graph/state foundation;
+- Gemini Planner Agent with Pydantic-validated structured output;
+- conditional Knowledge, Action, and Clarification routing;
+- terminal Clarification response for unknown or unsupported routes;
+- trusted passport and driving-license Markdown knowledge base;
+- section-aware multimodal RAG;
+- Knowledge Agent integration and grounded Gemini generation;
+- trusted source and confidence visibility;
+- image and PDF user-upload extraction and retrieval;
+- persistent official FAISS knowledge-base index;
+- separate ephemeral, in-memory user-upload index;
+- Action Agent dispatch foundation; and
+- dataset-backed passport and driving-license service-center lookup.
 
-The graph is no longer `START -> planner -> END`:
+Current graph:
 
+```text
+Planner
+  |
+  v
+Conditional Router
+  |-- Knowledge -> Knowledge Agent -> Multimodal RAG
+  |-- Action -> Action Agent -> Service Center Lookup
+  `-- Clarification
 ```
-START -> planner -> knowledge/action/clarification -> END
-```
 
-`knowledge` and `action` are minimal routing placeholders. They only write a
-routing message; they are not RAG or real action agents. There is no
-appointment node, so `appointment` currently falls back to clarification.
+All downstream branches currently end after one graph invocation.
 
 ## Important Files
 
-- `backend/main.py`: Loads `.env`, accepts one CLI message, invokes the graph,
-  and reports `PlannerError`.
-- `backend/agents/planner.py`: Calls Gemini and validates `PlannerOutput`.
-- `backend/graph/graph.py`: Defines Planner, placeholder terminal nodes, and
-  conditional routing.
-- `backend/graph/state.py`: Defines shared `PakAssistState`.
-- `tests/test_planner.py`: Offline mocked Planner and graph routing tests.
-- `tests/conftest.py`: Adds the project root to `sys.path` for pytest.
-- `requirements.txt`: Runtime and test dependencies.
-- `ARCHITECTURE.md`: Detailed implemented/planned architecture.
+- `main.py`: single-query CLI entry point; accepts optional upload paths from
+  command-line arguments and prints the response and sources.
+- `backend/agents/planner.py`: Gemini structured classification into `intent`,
+  `service_type`, and `next_step`.
+- `backend/graph/graph.py`: LangGraph nodes and conditional routing.
+- `backend/graph/state.py`: `PakAssistState` and `SourceRef` definitions.
+- `backend/agents/knowledge.py`: retrieval orchestration, grounded generation,
+  no-context fallback, and source construction.
+- `backend/rag/`: Markdown loading/chunking, normalized MiniLM embeddings,
+  FAISS stores, retrieval, and image/PDF extraction.
+- `scripts/build_index.py`: rebuilds the persistent official FAISS index.
+- `backend/agents/action.py`: Action selection, dispatch, response formatting,
+  and service-center source construction.
+- `backend/services/service_centers.py`: deterministic dataset loading,
+  location extraction, and service-center filtering.
+- `knowledge_base/`: trusted Markdown content and service-center JSON datasets.
+- `tests/`: offline Planner/graph tests plus RAG and Action integration coverage.
+- `ARCHITECTURE.md`: detailed architecture and limitations.
 
-## Current Workflow and State
+There is no `backend/main.py`; the current entry point is root `main.py`.
 
-`main.py` initializes `user_input`, `intent`, `service_type`, `next_step`, and
-`response`. The Planner node fills the three classification fields. Routing
-uses known `intent` and `service_type` plus `next_step`:
+## Current State Contract
 
-- known `knowledge` -> knowledge placeholder
-- known `action` -> action placeholder
-- unknown/unclear fields or unsupported route -> clarification node
+`PakAssistState` is a `TypedDict(total=False)` with these fields only:
 
-The selected terminal node fills `response` before the state is printed.
+- `user_input: str`
+- `intent: str`
+- `service_type: str`
+- `next_step: str`
+- `response: str`
+- `uploaded_files: Optional[List[str]]`
+- `sources: Optional[List[SourceRef]]`
 
-## Gemini and AFC Constraint
+`SourceRef` contains `label`, `origin`, `service`, `section`, `source_url`, and
+`confidence`. The Planner writes the three classification fields. Knowledge
+and Action write the response and sources.
 
-The Planner uses the direct `google-genai` client. It reads `GEMINI_API_KEY`
-from the environment and uses `GEMINI_MODEL`, defaulting to
-`gemini-2.5-flash`. Never hardcode credentials.
+## Routing and Agent Behavior
 
-Structured output uses Gemini native JSON schema settings:
+The Planner returns structured `intent`, `service_type`, and `next_step` data.
+Unknown intent/service values route to Clarification. Known `knowledge` and
+`action` decisions route to their real agents. Any other route, including the
+currently unimplemented `appointment` decision, falls back to Clarification.
+Service-center requests can use `intent="service_center_lookup"` and route to
+Action.
 
-- `response_mime_type="application/json"`
-- `response_schema=PlannerOutput`
-- no tools
-- `automatic_function_calling.disable=True`
+The Knowledge Agent searches the persistent trusted index plus an optional
+in-memory upload index, returns a safe fallback when no relevant chunks exist,
+and otherwise asks Gemini to answer strictly from retrieved context. Source
+origin, service, section, URL, and confidence metadata are preserved where
+available.
 
-The AFC issue was resolved by explicitly disabling automatic function calling.
-Do not reintroduce AFC or tool calling for the direct
-`models.generate_content` call. The Planner needs text-in/JSON-out structured
-classification. It parses the response with `json.loads` and validates it
-with Pydantic before graph state is updated.
+The Action Agent currently supports only `service_center_lookup`. Lookup logic
+is separate under `backend/services/`, reads the existing JSON files, performs
+textual location/office matching, asks for city/region when missing, and
+returns no result for locations absent from the data. Other actions receive a
+safe unsupported-action response.
 
-## Current Milestone
+## RAG and AFC Constraints
 
-Prove that the Planner controls LangGraph workflow selection while keeping
-downstream capabilities as minimal placeholders.
+- Preserve the single RAG implementation under `backend/rag/`; do not create a
+  duplicate retrieval pipeline.
+- The official knowledge-base index is persistent under `data/faiss_index/`
+  and is rebuilt with `scripts/build_index.py`.
+- User-upload content is indexed separately in memory and is never persisted
+  into the official index. The current single-run CLI bounds it to the process.
+- Section-aware Markdown loading, source/confidence metadata, normalized
+  `sentence-transformers/all-MiniLM-L6-v2` embeddings, and FAISS `IndexFlatIP`
+  are established architecture.
+- Planner structured output, Knowledge generation, and multimodal Gemini
+  extraction use direct `models.generate_content` calls with no tools and
+  `automatic_function_calling.disable=True`.
+- The AFC fix must remain intact. Do not introduce tools or AFC into existing
+  RAG generation unless that architecture is explicitly redesigned.
+- Grounded generation must not fill missing requirements, fees, or process
+  details from general model knowledge.
+
+## Action and Data Constraints
+
+- Keep Action selection/formatting separate from service and dataset logic.
+- Use the repository's passport and driving-license service-center datasets;
+  do not scrape the web or add an external location API for lookup.
+- Return only fields actually present in a record. Never hallucinate an
+  address, phone, portal, confidence value, or nearby substitute.
+- The driving-license dataset has only six records and is intentionally
+  incomplete. Missing cities are a dataset limitation, not a lookup failure.
+- There is no GPS, coordinate, distance, or map-based nearest-office feature.
+
+## Current CLI Limitation
+
+`main.py` reads one main user input and invokes the graph once per execution.
+A Clarification response ends that invocation, so the user's follow-up must
+currently start a new process. There is no conversational loop, accumulated
+message history, or checkpointer integration.
+
+## Completed Milestones
+
+1. Repository/backend and LangGraph state foundation.
+2. Structured Planner Agent.
+3. Conditional routing and Clarification path.
+4. Multimodal RAG foundation with persistent trusted index and ephemeral
+   upload index.
+5. Knowledge Agent integration and trusted source visibility.
+6. Action Agent foundation and Service Center Lookup.
+
+The current completed milestone is **Action Agent + Service Center Lookup**.
 
 ## Next Planned Milestone
 
-Connect one explicitly selected downstream capability to its route, starting
-with real knowledge retrieval only when that feature is scheduled. Do not
-build RAG, real actions, appointments, an API, frontend, database, document
-processing, voice, or dedicated Urdu/regional-language handling as part of
-this routing milestone.
+**Multi-turn Conversational CLI / Session Flow**
+
+The goal is to allow clarification and follow-up answers to continue within
+the same conversation instead of requiring a new process execution.
+
+Planned Action milestones after that:
+
+1. Checklist Builder
+2. Fee Lookup
+3. Appointment Simulator
+
+None of those later actions is implemented yet.
 
 ## Development Rules
 
-- Implement only the requested task.
-- Do not rebuild the Planner, structured-output path, or routing already here.
-- Do not implement planned features without explicit instruction.
-- Keep changes simple, beginner-readable, and limited to relevant files.
-- Preserve the Planner -> LangGraph design and existing state contract.
+- Keep each coding task focused on a small number of related features.
+- Preserve the Planner -> conditional LangGraph routing design.
+- Reuse existing agents and RAG modules instead of duplicating them.
 - Add state fields only for a real current requirement.
-- Keep agents under `backend/agents/` and graph changes under
-  `backend/graph/`.
-- Do not add an API framework or database until genuinely required.
-- Do not expose or commit API keys or other secrets; use `.env`.
-- Run the tests before considering a change complete.
+- Keep comments short and purposeful.
+- Do not add an API, frontend, database, authentication, or unrelated feature
+  without an explicit milestone.
+- Never hardcode or commit credentials; use environment configuration.
+- Add focused tests and run the relevant/full suite before completion.
 
 ## Git and Branching Rules
 
 - Do not commit directly to `main`.
 - Work on feature branches.
 - Keep commits focused on one logical change.
-- Use conventional commit messages such as `feat:`, `fix:`, `docs:`, and
+- Use conventional commit prefixes such as `feat:`, `fix:`, `docs:`, and
   `chore:`.
