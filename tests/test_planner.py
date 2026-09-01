@@ -85,17 +85,20 @@ def _graph_state(user_input: str) -> dict:
     }
 
 
+@patch("backend.graph.graph.knowledge_agent")
 @patch("backend.graph.graph.run_planner")
-def test_graph_routes_to_knowledge(mock_run_planner):
+def test_graph_routes_to_knowledge(mock_run_planner, mock_knowledge_agent):
     mock_run_planner.return_value = PlannerOutput(
         intent="apply_for_service",
         service_type="passport",
         next_step="knowledge",
     )
+    mock_knowledge_agent.return_value = {"response": "Knowledge response."}
 
     result = build_graph().invoke(_graph_state("What documents do I need?"))
 
-    assert result["response"] == "Request routed to knowledge."
+    assert result["response"] == "Knowledge response."
+    mock_knowledge_agent.assert_called_once()
 
 
 @patch("backend.graph.graph.run_planner")

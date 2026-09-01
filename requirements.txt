@@ -4,3 +4,9 @@ python-dotenv
 google-genai
 pydantic
 pytest
+sentence-transformers
+faiss-cpu
+PyMuPDF
+google-generativeai
+numpy
+Pillow
