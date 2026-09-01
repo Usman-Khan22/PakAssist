@@ -104,14 +104,14 @@ def test_graph_routes_to_knowledge(mock_run_planner, mock_knowledge_agent):
 @patch("backend.graph.graph.run_planner")
 def test_graph_routes_to_action(mock_run_planner):
     mock_run_planner.return_value = PlannerOutput(
-        intent="apply_for_service",
+        intent="service_center_lookup",
         service_type="driving_license",
         next_step="action",
     )
 
-    result = build_graph().invoke(_graph_state("Apply for a license"))
+    result = build_graph().invoke(_graph_state("Find a driving license office in Attock"))
 
-    assert result["response"] == "Request routed to action."
+    assert "Attock Driving Licensing Branch" in result["response"]
 
 
 @patch("backend.graph.graph.run_planner")

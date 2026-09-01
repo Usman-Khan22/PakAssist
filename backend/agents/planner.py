@@ -58,7 +58,9 @@ determine:
 invent or guess a specific service.
 - next_step: which downstream capability this should eventually go to.
   - "knowledge"   - the user wants information or guidance about a service.
-  - "action"      - the user wants to perform a concrete action (apply, renew, etc.).
+  - "action"      - the user wants to perform a concrete action (apply, renew, etc.)
+    or locate a service center/office. For a service-center lookup, use intent
+    "service_center_lookup".
   - "appointment" - the user wants to book or check an appointment.
   - "clarify"     - the request is ambiguous, off-topic, or you're not confident \
 enough to classify it.

@@ -211,19 +211,19 @@ def test_6_action_and_clarification_routes_preserved(mock_planner, app_graph):
     """Test 6: Action and Clarification routes remain functional."""
     # Test action route
     mock_planner.return_value = PlannerOutput(
-        intent="apply_for_service",
+        intent="service_center_lookup",
         service_type="driving_license",
         next_step="action",
     )
     action_result = app_graph.invoke({
-        "user_input": "I want to apply now",
+        "user_input": "Find a driving license office in Attock",
         "intent": "",
         "service_type": "",
         "next_step": "",
         "response": "",
     })
     assert action_result["next_step"] == "action"
-    assert action_result["response"] == "Request routed to action."
+    assert "Attock Driving Licensing Branch" in action_result["response"]
 
     # Test clarification route
     mock_planner.return_value = PlannerOutput(
