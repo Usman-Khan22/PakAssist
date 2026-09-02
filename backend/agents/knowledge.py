@@ -24,6 +24,20 @@ from backend.graph.state import PakAssistState, SourceRef
 from backend.rag.loader import RagDocument
 from backend.rag.multimodal import extract_text_from_image, extract_text_from_pdf
 from backend.rag.retriever import Retriever, RetrievedChunk
+from backend.services.checklist_builder import (
+    CHECKLIST_NOT_FOUND_MESSAGE,
+    CHECKLIST_SYSTEM_PROMPT,
+    checklist_retrieval_query,
+    is_checklist_request,
+    select_requirement_chunks,
+)
+from backend.services.fee_lookup import (
+    FEE_NOT_FOUND_MESSAGE,
+    FEE_SYSTEM_PROMPT,
+    fee_retrieval_query,
+    is_fee_request,
+    select_fee_chunks,
+)
 
 NO_CONTEXT_MESSAGE = (
     "I couldn't find reliable information for this request in the current "
@@ -142,7 +156,9 @@ def _chunks_to_source_refs(chunks: List[RetrievedChunk]) -> List[SourceRef]:
     return refs
 
 
-def _call_gemini(query: str, context_block: str) -> str:
+def _call_gemini(
+    query: str, context_block: str, system_prompt: str = _GENERATION_SYSTEM_PROMPT
+) -> str:
     from google.genai import types
 
     client = _get_client()
@@ -154,7 +170,7 @@ def _call_gemini(query: str, context_block: str) -> str:
         model=model_name,
         contents=prompt,
         config=types.GenerateContentConfig(
-            system_instruction=_GENERATION_SYSTEM_PROMPT,
+            system_instruction=system_prompt,
             automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         ),
     )
@@ -175,16 +191,51 @@ def knowledge_agent(state: PakAssistState) -> PakAssistState:
     if uploaded_files:
         retriever.add_user_content(_extract_uploaded_files(uploaded_files))
 
-    chunks = retriever.retrieve(query)
+    intent = state.get("intent", "")
+    service_type = state.get("service_type", "")
+    checklist_mode = is_checklist_request(intent, query)
+    fee_mode = is_fee_request(intent, query)
+
+    retrieval_query = query
+    top_k = None
+    if checklist_mode:
+        retrieval_query = checklist_retrieval_query(service_type, query)
+        top_k = 20
+    elif fee_mode:
+        retrieval_query = fee_retrieval_query(service_type, query)
+        top_k = 20
+
+    chunks = retriever.retrieve(retrieval_query, top_k=top_k)
 
     if not chunks:
         state["response"] = NO_CONTEXT_MESSAGE
         state["sources"] = []
         return state
 
-    context_block = _build_context_block(chunks)
-    answer = _call_gemini(query, context_block)
+    system_prompt = _GENERATION_SYSTEM_PROMPT
+    source_chunks = chunks
+
+    if checklist_mode:
+        source_chunks = select_requirement_chunks(chunks, service_type)
+        if not source_chunks:
+            state["response"] = CHECKLIST_NOT_FOUND_MESSAGE
+            state["sources"] = []
+            return state
+        system_prompt = CHECKLIST_SYSTEM_PROMPT
+    elif fee_mode:
+        matching_fee_chunks, reliable_fee_chunks = select_fee_chunks(
+            chunks, service_type
+        )
+        if not reliable_fee_chunks:
+            state["response"] = FEE_NOT_FOUND_MESSAGE
+            state["sources"] = _chunks_to_source_refs(matching_fee_chunks)
+            return state
+        source_chunks = reliable_fee_chunks
+        system_prompt = FEE_SYSTEM_PROMPT
+
+    context_block = _build_context_block(source_chunks)
+    answer = _call_gemini(query, context_block, system_prompt=system_prompt)
 
     state["response"] = answer or NO_CONTEXT_MESSAGE
-    state["sources"] = _chunks_to_source_refs(chunks)
+    state["sources"] = _chunks_to_source_refs(source_chunks)
     return state

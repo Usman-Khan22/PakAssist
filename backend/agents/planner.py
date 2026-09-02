@@ -58,6 +58,9 @@ determine:
 invent or guess a specific service.
 - next_step: which downstream capability this should eventually go to.
   - "knowledge"   - the user wants information or guidance about a service.
+    Requirements/checklist questions and fee/cost questions must use this route.
+    Use intent "requirements_checklist" for documents/what-to-bring requests,
+    and "fee_lookup" for fee or cost requests.
   - "action"      - the user wants to perform a concrete action (apply, renew, etc.)
     or locate a service center/office. For a service-center lookup, use intent
     "service_center_lookup".
