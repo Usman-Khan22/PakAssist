@@ -92,10 +92,17 @@ def action_agent(state: PakAssistState) -> dict:
         return {
             "response": "This action is not supported yet. I can currently look up service centers.",
             "sources": [],
+            "pending_clarification": None,
+            "pending_request": None,
         }
 
     result = lookup_service_centers(
         state.get("service_type", "unknown"), state.get("user_input", "")
     )
-    return {"response": _lookup_response(result), "sources": _source_refs(result)}
-
+    pending_location = result.status == "missing_location"
+    return {
+        "response": _lookup_response(result),
+        "sources": _source_refs(result),
+        "pending_clarification": "location" if pending_location else None,
+        "pending_request": state.get("user_input") if pending_location else None,
+    }

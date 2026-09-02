@@ -1,71 +1,69 @@
 # PakAssist - Project Context for AI Coding Agents
 
-## Purpose
+## Purpose and Current Status
 
-PakAssist is a backend-only assistant that helps Pakistani citizens navigate
-government services. Current service coverage is passport and driving license.
-Treat the repository implementation as the source of truth and develop
-incrementally.
-
-## Current Implementation
+PakAssist is a backend-only, multi-turn LangGraph CLI for Pakistani passport
+and driving-license assistance. Treat repository code as the source of truth.
 
 Completed capabilities:
 
-- repository and backend foundation;
-- shared LangGraph graph/state foundation;
-- Gemini Planner Agent with Pydantic-validated structured output;
-- conditional Knowledge, Action, and Clarification routing;
-- terminal Clarification response for unknown or unsupported routes;
-- trusted passport and driving-license Markdown knowledge base;
-- section-aware multimodal RAG;
-- Knowledge Agent integration and grounded Gemini generation;
-- trusted source and confidence visibility;
-- image and PDF user-upload extraction and retrieval;
-- persistent official FAISS knowledge-base index;
-- separate ephemeral, in-memory user-upload index;
-- Action Agent dispatch foundation; and
-- dataset-backed passport and driving-license service-center lookup.
+- structured Gemini Planner and conditional Knowledge/Action/Clarification
+  routing;
+- terminal Clarification behavior;
+- section-aware multimodal RAG over a persistent trusted FAISS index and a
+  separate ephemeral upload index;
+- grounded Knowledge Agent generation with trusted source/confidence visibility;
+- image and PDF upload retrieval;
+- Action Agent and dataset-backed Service Center Lookup;
+- in-process multi-turn CLI sessions with LangGraph `InMemorySaver`;
+- missing-location clarification continuation;
+- contextual service reuse for fee follow-ups;
+- grounded Checklist Builder; and
+- high-confidence trusted Fee Lookup with safe missing/unverified handling.
 
-Current graph:
+## Current Graph
 
 ```text
-Planner
-  |
-  v
-Conditional Router
-  |-- Knowledge -> Knowledge Agent -> Multimodal RAG
-  |-- Action -> Action Agent -> Service Center Lookup
-  `-- Clarification
+Multi-turn CLI (one thread_id)
+  -> Planner / contextual continuation
+  -> Conditional Router
+       |-- Knowledge -> Knowledge Agent -> Multimodal RAG
+       |      |-- normal grounded answer
+       |      |-- trusted requirements -> Checklist Builder
+       |      `-- trusted fee sections -> Fee Lookup
+       |-- Action -> Action Agent -> Service Center Lookup
+       `-- Clarification
 ```
 
-All downstream branches currently end after one graph invocation.
+Checklist and fee handling are Knowledge/RAG transformations, not Action Agent
+capabilities. Action currently supports only `service_center_lookup`.
 
 ## Important Files
 
-- `main.py`: single-query CLI entry point; accepts optional upload paths from
-  command-line arguments and prints the response and sources.
-- `backend/agents/planner.py`: Gemini structured classification into `intent`,
-  `service_type`, and `next_step`.
-- `backend/graph/graph.py`: LangGraph nodes and conditional routing.
-- `backend/graph/state.py`: `PakAssistState` and `SourceRef` definitions.
-- `backend/agents/knowledge.py`: retrieval orchestration, grounded generation,
-  no-context fallback, and source construction.
-- `backend/rag/`: Markdown loading/chunking, normalized MiniLM embeddings,
-  FAISS stores, retrieval, and image/PDF extraction.
-- `scripts/build_index.py`: rebuilds the persistent official FAISS index.
-- `backend/agents/action.py`: Action selection, dispatch, response formatting,
-  and service-center source construction.
-- `backend/services/service_centers.py`: deterministic dataset loading,
-  location extraction, and service-center filtering.
-- `knowledge_base/`: trusted Markdown content and service-center JSON datasets.
-- `tests/`: offline Planner/graph tests plus RAG and Action integration coverage.
-- `ARCHITECTURE.md`: detailed architecture and limitations.
+- `main.py`: multi-turn CLI loop, `InMemorySaver`, UUID thread ID, optional
+  first-turn uploads, source display, and `exit`/`quit` handling.
+- `backend/graph/graph.py`: contextual continuation, nodes, and routing.
+- `backend/graph/state.py`: `PakAssistState` and `SourceRef`.
+- `backend/agents/planner.py`: validated `intent`, `service_type`, and
+  `next_step` classification.
+- `backend/agents/knowledge.py`: retrieval orchestration, response-mode
+  selection, grounded generation, fallbacks, and sources.
+- `backend/services/checklist_builder.py`: checklist detection, trusted
+  required-section selection, and fact-free formatting rules.
+- `backend/services/fee_lookup.py`: fee detection, confidence-gated fee-section
+  selection, and fact-free formatting rules.
+- `backend/rag/`: one shared Markdown/multimodal RAG implementation.
+- `scripts/build_index.py`: rebuilds `data/faiss_index/`.
+- `backend/agents/action.py`: Action dispatch and response/source formatting.
+- `backend/services/service_centers.py`: JSON-backed location matching.
+- `knowledge_base/`: trusted Markdown and service-center JSON datasets.
+- `tests/`: Planner, RAG, Action, session, checklist, and fee coverage.
 
-There is no `backend/main.py`; the current entry point is root `main.py`.
+There is no `backend/main.py`; the entry point is root `main.py`.
 
 ## Current State Contract
 
-`PakAssistState` is a `TypedDict(total=False)` with these fields only:
+`PakAssistState` is `TypedDict(total=False)` with only:
 
 - `user_input: str`
 - `intent: str`
@@ -74,112 +72,111 @@ There is no `backend/main.py`; the current entry point is root `main.py`.
 - `response: str`
 - `uploaded_files: Optional[List[str]]`
 - `sources: Optional[List[SourceRef]]`
+- `pending_clarification: Optional[str]`
+- `pending_request: Optional[str]`
 
 `SourceRef` contains `label`, `origin`, `service`, `section`, `source_url`, and
-`confidence`. The Planner writes the three classification fields. Knowledge
-and Action write the response and sources.
+`confidence`.
 
-## Routing and Agent Behavior
+## Session Behavior
 
-The Planner returns structured `intent`, `service_type`, and `next_step` data.
-Unknown intent/service values route to Clarification. Known `knowledge` and
-`action` decisions route to their real agents. Any other route, including the
-currently unimplemented `appointment` decision, falls back to Clarification.
-Service-center requests can use `intent="service_center_lookup"` and route to
-Action.
+One CLI process creates one in-memory checkpointer and stable UUID thread ID,
+then invokes the graph repeatedly until `exit`, `quit`, or EOF. State does not
+persist across restarts and different thread IDs do not share checkpoints.
 
-The Knowledge Agent searches the persistent trusted index plus an optional
-in-memory upload index, returns a safe fallback when no relevant chunks exist,
-and otherwise asks Gemini to answer strictly from retrieved context. Source
-origin, service, section, URL, and confidence metadata are preserved where
-available.
+Supported contextual continuation is intentionally narrow:
 
-The Action Agent currently supports only `service_center_lookup`. Lookup logic
-is separate under `backend/services/`, reads the existing JSON files, performs
-textual location/office matching, asks for city/region when missing, and
-returns no result for locations absent from the data. Other actions receive a
-safe unsupported-action response.
+- a service-center request missing location records `pending_clarification`
+  and `pending_request`; the next location answer resumes that Action request;
+- a fee follow-up whose Planner output lacks a service can inherit a known
+  `service_type` from the same thread and route to Knowledge.
 
-## RAG and AFC Constraints
+There is no general message-history reasoning or generic clarification-resume
+system.
 
-- Preserve the single RAG implementation under `backend/rag/`; do not create a
-  duplicate retrieval pipeline.
-- The official knowledge-base index is persistent under `data/faiss_index/`
-  and is rebuilt with `scripts/build_index.py`.
-- User-upload content is indexed separately in memory and is never persisted
-  into the official index. The current single-run CLI bounds it to the process.
-- Section-aware Markdown loading, source/confidence metadata, normalized
-  `sentence-transformers/all-MiniLM-L6-v2` embeddings, and FAISS `IndexFlatIP`
-  are established architecture.
-- Planner structured output, Knowledge generation, and multimodal Gemini
-  extraction use direct `models.generate_content` calls with no tools and
-  `automatic_function_calling.disable=True`.
-- The AFC fix must remain intact. Do not introduce tools or AFC into existing
-  RAG generation unless that architecture is explicitly redesigned.
-- Grounded generation must not fill missing requirements, fees, or process
-  details from general model knowledge.
+## Grounding and Integration Rules
 
-## Action and Data Constraints
+- Reuse the single RAG implementation under `backend/rag/`; do not duplicate
+  retrieval or change the embedding/vector-store architecture casually.
+- Official Markdown uses section-aware loading, normalized
+  `sentence-transformers/all-MiniLM-L6-v2` embeddings, and FAISS
+  `IndexFlatIP`. The official index is persistent; uploads remain separate and
+  in memory.
+- Checklist requests stay on the Knowledge route. Only trusted
+  `Required Documents` chunks for the current service may supply checklist
+  facts. `checklist_builder.py` must remain fact-free.
+- Fee requests stay on the Knowledge route. Numeric generation requires a
+  matching trusted fee section with high confidence and no unverified marker.
+  `fee_lookup.py` must remain amount-free.
+- Passport has high-confidence official fee tables but retains a re-confirmation
+  warning. Driving-license numeric fees are medium-confidence/unverified, so
+  current lookup returns reliable-fee-not-found instead of quoting them.
+- Build `sources` from the chunks actually used. Keep the existing `SourceRef`
+  contract; do not add a parallel citation mechanism.
+- Normal Knowledge, Checklist Builder, Fee Lookup, Planner structured output,
+  and multimodal extraction use direct Gemini calls with no tools and
+  `automatic_function_calling.disable=True`. Preserve the AFC fix.
+- Grounded generation must never fill missing requirements, fees, or process
+  facts from model knowledge.
 
-- Keep Action selection/formatting separate from service and dataset logic.
-- Use the repository's passport and driving-license service-center datasets;
-  do not scrape the web or add an external location API for lookup.
-- Return only fields actually present in a record. Never hallucinate an
-  address, phone, portal, confidence value, or nearby substitute.
-- The driving-license dataset has only six records and is intentionally
-  incomplete. Missing cities are a dataset limitation, not a lookup failure.
+## Action and Dataset Rules
+
+- Keep Action dispatch separate from service/data logic.
+- Action currently supports only `service_center_lookup`; checklist and fee
+  modes do not belong in Action.
+- Use the existing passport and driving-license JSON datasets without scraping
+  or an external location API.
+- Never invent missing office fields or substitute another city.
+- Driving-license center coverage is intentionally incomplete.
 - There is no GPS, coordinate, distance, or map-based nearest-office feature.
-
-## Current CLI Limitation
-
-`main.py` reads one main user input and invokes the graph once per execution.
-A Clarification response ends that invocation, so the user's follow-up must
-currently start a new process. There is no conversational loop, accumulated
-message history, or checkpointer integration.
 
 ## Completed Milestones
 
 1. Repository/backend and LangGraph state foundation.
 2. Structured Planner Agent.
 3. Conditional routing and Clarification path.
-4. Multimodal RAG foundation with persistent trusted index and ephemeral
-   upload index.
+4. Multimodal RAG with persistent trusted and ephemeral upload indexes.
 5. Knowledge Agent integration and trusted source visibility.
-6. Action Agent foundation and Service Center Lookup.
+6. Action Agent and Service Center Lookup.
+7. Multi-Turn Conversational Session Flow.
+8. Grounded Checklist Builder and Fee Lookup.
 
-The current completed milestone is **Action Agent + Service Center Lookup**.
+The current completed milestone is **Milestone 8: Grounded Checklist Builder +
+Fee Lookup**.
+
+## Current Limitations
+
+- Appointment routing falls back to Clarification; there is no appointment
+  node, slot checker, or booking simulator.
+- Sessions and checkpoints are process-local only.
+- Context reuse covers pending location and service-ambiguous fee follow-ups,
+  not arbitrary conversation.
+- Generic Clarification responses do not all support structured continuation.
+- Driving-license fee data is not reliable enough for numeric answers.
+- Driving-license service-center data is incomplete.
+- No GPS/maps, progress tracking, API, frontend, production upload UI,
+  database, authentication, voice, or broad localization layer exists.
 
 ## Next Planned Milestone
 
-**Multi-turn Conversational CLI / Session Flow**
+**Appointment Simulator / Appointment Workflow**
 
-The goal is to allow clarification and follow-up answers to continue within
-the same conversation instead of requiring a new process execution.
-
-Planned Action milestones after that:
-
-1. Checklist Builder
-2. Fee Lookup
-3. Appointment Simulator
-
-None of those later actions is implemented yet.
+The next milestone should define the currently missing appointment graph path
+and its approved slot/booking simulation behavior. Do not treat slot checking
+or booking as implemented before that work exists.
 
 ## Development Rules
 
-- Keep each coding task focused on a small number of related features.
-- Preserve the Planner -> conditional LangGraph routing design.
-- Reuse existing agents and RAG modules instead of duplicating them.
-- Add state fields only for a real current requirement.
+- Keep tasks focused on a small set of related features.
+- Preserve Planner -> conditional routing and existing session behavior.
 - Keep comments short and purposeful.
-- Do not add an API, frontend, database, authentication, or unrelated feature
-  without an explicit milestone.
-- Never hardcode or commit credentials; use environment configuration.
-- Add focused tests and run the relevant/full suite before completion.
+- Add state only for a concrete requirement.
+- Never hardcode or commit credentials.
+- Do not add unrelated APIs, databases, providers, or frameworks.
+- Add focused tests and run the full suite.
 
 ## Git and Branching Rules
 
 - Do not commit directly to `main`.
-- Work on feature branches.
-- Keep commits focused on one logical change.
-- Use conventional commit prefixes such as `feat:`, `fix:`, `docs:`, and
-  `chore:`.
+- Work on focused feature branches and commits.
+- Use conventional prefixes such as `feat:`, `fix:`, `docs:`, and `chore:`.

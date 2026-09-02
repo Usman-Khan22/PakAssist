@@ -19,4 +19,6 @@ class PakAssistState(TypedDict, total=False):
     next_step: str
     response: str
     uploaded_files: Optional[List[str]]
-    sources: Optional[List[SourceRef]]
+    sources: Optional[List[SourceRef]]
+    pending_clarification: Optional[str]
+    pending_request: Optional[str]
