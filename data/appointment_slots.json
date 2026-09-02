@@ -1,0 +1,26 @@
+[
+  {
+    "service_type": "passport",
+    "office_name": "Karachi-I (South)",
+    "date": "2026-09-15",
+    "slots": ["10:00", "11:30", "14:00"]
+  },
+  {
+    "service_type": "passport",
+    "office_name": "Islamabad Headquarter",
+    "date": "2026-09-16",
+    "slots": ["09:30", "11:00", "13:30"]
+  },
+  {
+    "service_type": "driving_license",
+    "office_name": "Attock Driving Licensing Branch",
+    "date": "2026-09-17",
+    "slots": ["10:00", "12:00", "14:30"]
+  },
+  {
+    "service_type": "driving_license",
+    "office_name": "ITP License Branch, Shakarparian",
+    "date": "2026-09-18",
+    "slots": ["09:00", "11:30", "15:00"]
+  }
+]

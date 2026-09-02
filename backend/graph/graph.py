@@ -10,11 +10,14 @@ from backend.services.fee_lookup import is_fee_request
 
 def _planner_node(state: PakAssistState) -> dict:
     """Runs the Planner Agent and returns only the fields it owns."""
-    if state.get("pending_clarification") == "location":
-        original_request = (state.get("pending_request") or "").rstrip(" ?.!")
-        location = state.get("user_input", "").strip()
+    pending = state.get("pending_clarification")
+    if pending in {"location", "office"}:
+        user_input = state.get("user_input", "").strip()
+        if pending == "location":
+            original_request = (state.get("pending_request") or "").rstrip(" ?.!")
+            user_input = f"{original_request} in {user_input}"
         return {
-            "user_input": f"{original_request} in {location}",
+            "user_input": user_input,
             "intent": state["intent"],
             "service_type": state["service_type"],
             "next_step": "action",
@@ -24,6 +27,18 @@ def _planner_node(state: PakAssistState) -> dict:
 
     result = run_planner(state["user_input"])
     previous_service = state.get("service_type")
+    appointment_intent = result.intent in {"check_slots", "book_slot"}
+    if appointment_intent:
+        return {
+            "intent": result.intent,
+            "service_type": (
+                previous_service
+                if result.service_type == "unknown"
+                and previous_service not in {None, "", "unknown"}
+                else result.service_type
+            ),
+            "next_step": "action",
+        }
     if (
         result.service_type == "unknown"
         and previous_service not in {None, "", "unknown"}

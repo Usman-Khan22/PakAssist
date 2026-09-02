@@ -2,8 +2,8 @@
 
 This guide is for a developer who understands basic Python and wants a mental
 model of PakAssist without reading every helper function. It follows the code
-that exists today, through the multi-turn session, grounded checklist, and fee
-lookup milestones.
+that exists today through Milestone 9, including multi-turn sessions, grounded
+assistance, and deterministic appointment simulation.
 
 ## 1. Big Picture
 
@@ -15,6 +15,7 @@ questions. It can:
 - return verified fee information when the knowledge base supports it;
 - read relevant text from uploaded images and PDFs;
 - find passport and driving-license service centers from local JSON datasets;
+- check and book deterministic demo appointment slots after office selection;
 - ask for a missing location and continue when the user replies; and
 - reuse a known service for a narrow fee follow-up such as “How much does it
   cost?”
@@ -37,7 +38,10 @@ Conditional Router
   |                                  |-- grounded checklist
   |                                  `-- grounded fee answer
   |
-  |-- Action -> Action Agent -> Service Center Lookup
+  |-- Action -> Action Agent
+  |              |-- Service Center Lookup
+  |              |-- Check Slots -> Appointment Simulator
+  |              `-- Book Slot -> Appointment Simulator
   |
   `-- Clarification
 ```
@@ -52,9 +56,11 @@ The components have different jobs:
   requirement facts.
 - **Fee Lookup** selects trustworthy retrieved fee sections; it contains no fee
   amounts itself.
-- The **Action Agent** dispatches concrete actions. Its only current action is
-  service-center lookup.
+- The **Action Agent** dispatches service-center lookup, simulated slot checks,
+  and simulated bookings.
 - **Service Center Lookup** reads and filters local JSON records.
+- The **Appointment Simulator** reads immutable demo schedules and validates
+  session-local bookings; it is not a live appointment system.
 - **Clarification** is the safe fallback when routing is uncertain.
 - **Session state** lets a small amount of context survive between turns in the
   same process.
@@ -111,9 +117,14 @@ The current fields are:
 - `response`: the user-facing answer written by the selected downstream node.
 - `uploaded_files`: optional image/PDF paths for Knowledge retrieval.
 - `sources`: source references supporting the answer.
-- `pending_clarification`: the missing datum for a resumable request. The only
-  current value is `location`.
-- `pending_request`: the original request kept while that location is missing.
+- `pending_clarification`: the missing datum for a resumable request;
+  currently `location` or `office`.
+- `pending_request`: the original request kept while location or office choice
+  is missing.
+- `office_options`: ordered office names offered to the user.
+- `selected_office`: the office chosen for appointment simulation.
+- `appointment_date`: the demo date configured for that office.
+- `booked_slots`: slot keys booked in this checkpointed session.
 
 `SourceRef` is the common source shape used by Knowledge and Action responses.
 It stores a display label, origin, service, section, source URL, and confidence
@@ -149,13 +160,13 @@ Routing rules are intentionally conservative:
 - unknown intent or service -> Clarification;
 - known `next_step="knowledge"` -> Knowledge;
 - known `next_step="action"` -> Action; and
-- everything else, including the currently unimplemented `appointment` route,
-  -> Clarification.
+- everything else -> Clarification.
 
-Before calling the Planner, the planner node checks whether a location answer
-is pending. After calling the Planner, it also checks whether a fee follow-up
-can safely reuse the previous service. Those are small compatibility rules,
-not a separate conversation-memory agent.
+Before calling the Planner, the planner node resolves pending location or
+office answers. After calling it, the node can safely reuse service context for
+fee and exact appointment intents. Exact `check_slots` and `book_slot` intents
+are normalized to Action. These are small compatibility rules, not a separate
+conversation-memory agent.
 
 ## 5. Planner - `backend/agents/planner.py`
 
@@ -185,8 +196,10 @@ Conceptual examples:
   next_step    -> knowledge
 ```
 
-The contract also permits `appointment`, but the graph has no appointment node
-yet, so that value currently falls back to Clarification.
+The contract also permits `appointment`, but the implemented simulator does
+not require a separate graph node: exact `check_slots` and `book_slot` intents
+route through Action. Unsupported routing values still fall back to
+Clarification.
 
 Gemini returns native structured JSON. The code parses it with `json.loads`
 and validates it before state is updated. Tools are not configured, and
@@ -350,9 +363,9 @@ Planner
   -> response + sources
 ```
 
-`backend/agents/action.py` interprets the Planner intent and lookup language.
-Its only real supported action is `service_center_lookup`. Any other Action
-request receives a safe message explaining that it is not supported yet.
+`backend/agents/action.py` interprets the Planner intent and request language.
+It dispatches `service_center_lookup`, `check_slots`, and `book_slot`. Any other
+Action request receives a safe unsupported-action message.
 
 The distinction is useful:
 
@@ -390,6 +403,26 @@ The passport dataset is broad. The driving-license dataset has only six
 records and is intentionally incomplete. For example, a Lahore lookup cannot
 safely return an Attock office.
 
+### Appointment Simulator
+
+`backend/services/appointment_simulator.py` is the deterministic service behind
+slot checking and demo booking. The Action Agent first resolves an office by
+reusing Service Center Lookup. A single match can be selected automatically;
+multiple matches are stored in `office_options` and prompt the user to choose
+by office name, number, or a simple ordinal.
+
+The service reads `data/appointment_slots.json`, which is a small immutable demo
+schedule rather than trusted knowledge or live government availability. It
+matches exact service/office entries, normalizes common requested times to
+`HH:MM`, and removes slot keys already present in the session's `booked_slots`.
+A successful booking appends its key to state and returns a deterministic
+`DEMO-...` reference. It never edits the seed file or creates a real booking.
+
+Responses explicitly say that availability and confirmation are simulated and
+that a real appointment must be made through the official government system.
+Because demo schedules are not trusted evidence, appointment responses use an
+empty `sources` list.
+
 ## 11. Multi-Turn Conversation
 
 The practical location flow is:
@@ -421,6 +454,20 @@ User: How much does it cost?
   -> Planner identifies a fee request but may return service=unknown
   -> graph reuses passport from this thread
   -> Knowledge fee path runs
+```
+
+Appointment continuation adds location and office resolution:
+
+```text
+User: Check passport appointment slots in Karachi.
+  -> Service Center Lookup finds several offices
+  -> Action stores office_options and asks the user to select
+User: first
+  -> selected_office is retained in the same thread
+  -> Appointment Simulator returns that office's demo date and open slots
+User: Book 10:00
+  -> the demo slot key is appended to booked_slots
+  -> a repeated booking in this session is rejected
 ```
 
 This context exists only in memory. Closing the process loses it. A new
@@ -482,6 +529,22 @@ resolution, or continuation for every clarification type.
   -> Attock Driving Licensing Branch
 ```
 
+### Simulated appointment
+
+```text
+"Check passport appointment slots in Karachi."
+  -> Planner: check_slots / passport / action
+  -> Action Agent -> Service Center Lookup
+  -> office selection when multiple matches exist
+  -> Appointment Simulator -> demo date and available times
+"Book 10:00"
+  -> Planner: book_slot / passport / action
+  -> session-local booking + DEMO reference
+```
+
+This result is explicitly a simulation, not live availability or a government
+reservation.
+
 ## 13. Important Files at a Glance
 
 - `main.py`: starts and maintains the CLI session.
@@ -497,11 +560,15 @@ resolution, or continuation for every clarification type.
 - `backend/services/fee_lookup.py`: fact-free fee selection and formatting
   rules.
 - `backend/services/service_centers.py`: deterministic JSON center lookup.
+- `backend/services/appointment_simulator.py`: deterministic slot and booking
+  rules.
+- `data/appointment_slots.json`: immutable demo schedules.
 - `backend/rag/`: loading, chunking, embeddings, FAISS, retrieval, and
   multimodal extraction.
 - `scripts/build_index.py`: rebuilds the persistent official index.
 - `knowledge_base/`: trusted Markdown guidance and center datasets.
-- `tests/`: route, RAG, session, Action, checklist, and fee behavior.
+- `tests/`: route, RAG, session, Action, checklist, fee, and appointment
+  behavior.
 
 ## 14. If I Want to Change X, Where Do I Go?
 
@@ -528,10 +595,16 @@ resolution, or continuation for every clarification type.
 - Add or modify an action -> `backend/agents/action.py`; keep its factual or
   dataset work in a separate service module.
 - Change center matching -> `backend/services/service_centers.py`.
+- Change demo schedule/time/booking rules ->
+  `backend/services/appointment_simulator.py`.
+- Change configured demo office dates or slots ->
+  `data/appointment_slots.json`; keep it clearly simulated and immutable at
+  runtime.
 - Change the interactive loop, exits, or thread creation -> `main.py`.
 - Add tests -> choose the focused file under `tests/`; session behavior belongs
-  in `test_session_flow.py`, while checklist/fee behavior belongs in
-  `test_grounded_assistance.py`.
+  in `test_session_flow.py`, checklist/fee behavior belongs in
+  `test_grounded_assistance.py`, and appointment behavior belongs in
+  `test_appointment_simulator.py`.
 
 When adding a future capability, first decide whether it is Knowledge or
 Action. If it answers from trusted facts, extend the Knowledge path. If it
@@ -550,19 +623,23 @@ To work productively at first, you do not need to study:
 - every mock in the tests.
 
 Start with `main.py`, state, graph, and the three agents. Then follow either the
-Knowledge path into `backend/rag/` or the Action path into
-`backend/services/service_centers.py` depending on the feature you are changing.
+Knowledge path into `backend/rag/` or the Action path into the relevant service
+module depending on the feature you are changing.
 
 ## 16. Current Limitations and Next Areas
 
-- Appointment values currently fall back to Clarification; there is no
-  appointment node, slot checker, or booking simulator.
-- Conversation state is process-local and supports only pending location and
-  service-ambiguous fee continuation, not general chat memory.
+- Appointment availability is a small deterministic demo, not live government
+  data, and no real reservation is created.
+- Demo bookings and conversation state are process/thread-local; they do not
+  persist across restarts or represent multi-user storage.
+- Context supports location, office selection, appointment flow, and narrow
+  fee continuation, not general chat memory.
 - Driving-license numeric fees are not reliable enough to quote.
 - Driving-license center coverage is incomplete.
 - “Nearest” means textual location matching, not geographic distance.
 - There is no API, frontend, production upload UI, database, authentication,
   voice layer, GPS/maps, or progress tracking.
 
-The next planned area is the Appointment Simulator / appointment workflow.
+The next planned area is Journey/Progress Tracking and Orchestration
+Refinement. RAG latency profiling and optimization remains a technical
+improvement area.

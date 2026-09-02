@@ -63,8 +63,11 @@ invent or guess a specific service.
     and "fee_lookup" for fee or cost requests.
   - "action"      - the user wants to perform a concrete action (apply, renew, etc.)
     or locate a service center/office. For a service-center lookup, use intent
-    "service_center_lookup".
-  - "appointment" - the user wants to book or check an appointment.
+    "service_center_lookup". For prototype appointment availability, use intent
+    "check_slots" and next_step "action". For a prototype slot booking, use
+    intent "book_slot" and next_step "action".
+  - "appointment" - reserved for a real appointment capability that is not
+    currently connected.
   - "clarify"     - the request is ambiguous, off-topic, or you're not confident \
 enough to classify it.
 

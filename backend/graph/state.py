@@ -22,3 +22,7 @@ class PakAssistState(TypedDict, total=False):
     sources: Optional[List[SourceRef]]
     pending_clarification: Optional[str]
     pending_request: Optional[str]
+    office_options: Optional[List[str]]
+    selected_office: Optional[str]
+    appointment_date: Optional[str]
+    booked_slots: Optional[List[str]]
