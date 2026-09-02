@@ -18,8 +18,10 @@ Completed capabilities:
 - in-process multi-turn CLI sessions with LangGraph `InMemorySaver`;
 - missing-location clarification continuation;
 - contextual service reuse for fee follow-ups;
-- grounded Checklist Builder; and
-- high-confidence trusted Fee Lookup with safe missing/unverified handling.
+- grounded Checklist Builder;
+- high-confidence trusted Fee Lookup with safe missing/unverified handling;
+- deterministic demo appointment slot checking and booking; and
+- multi-turn office selection with session-local duplicate-booking prevention.
 
 ## Current Graph
 
@@ -31,12 +33,16 @@ Multi-turn CLI (one thread_id)
        |      |-- normal grounded answer
        |      |-- trusted requirements -> Checklist Builder
        |      `-- trusted fee sections -> Fee Lookup
-       |-- Action -> Action Agent -> Service Center Lookup
+       |-- Action -> Action Agent
+       |      |-- Service Center Lookup
+       |      |-- Check Slots -> Appointment Simulator
+       |      `-- Book Slot -> Appointment Simulator
        `-- Clarification
 ```
 
 Checklist and fee handling are Knowledge/RAG transformations, not Action Agent
-capabilities. Action currently supports only `service_center_lookup`.
+capabilities. Action supports `service_center_lookup`, `check_slots`, and
+`book_slot`.
 
 ## Important Files
 
@@ -56,8 +62,13 @@ capabilities. Action currently supports only `service_center_lookup`.
 - `scripts/build_index.py`: rebuilds `data/faiss_index/`.
 - `backend/agents/action.py`: Action dispatch and response/source formatting.
 - `backend/services/service_centers.py`: JSON-backed location matching.
+- `backend/services/appointment_simulator.py`: deterministic schedule lookup,
+  time normalization, booking validation, and demo references.
+- `data/appointment_slots.json`: immutable demo seed, not live government
+  availability or trusted KB content.
 - `knowledge_base/`: trusted Markdown and service-center JSON datasets.
-- `tests/`: Planner, RAG, Action, session, checklist, and fee coverage.
+- `tests/`: Planner, RAG, Action, session, checklist, fee, and appointment
+  coverage.
 
 There is no `backend/main.py`; the entry point is root `main.py`.
 
@@ -74,6 +85,10 @@ There is no `backend/main.py`; the entry point is root `main.py`.
 - `sources: Optional[List[SourceRef]]`
 - `pending_clarification: Optional[str]`
 - `pending_request: Optional[str]`
+- `office_options: Optional[List[str]]`
+- `selected_office: Optional[str]`
+- `appointment_date: Optional[str]`
+- `booked_slots: Optional[List[str]]`
 
 `SourceRef` contains `label`, `origin`, `service`, `section`, `source_url`, and
 `confidence`.
@@ -90,6 +105,9 @@ Supported contextual continuation is intentionally narrow:
   and `pending_request`; the next location answer resumes that Action request;
 - a fee follow-up whose Planner output lacks a service can inherit a known
   `service_type` from the same thread and route to Knowledge.
+- an appointment can reuse service context, perform location clarification,
+  retain ordered office choices, accept a name/index/ordinal selection, check
+  demo slots, and reject a slot already booked in the same thread.
 
 There is no general message-history reasoning or generic clarification-resume
 system.
@@ -122,13 +140,19 @@ system.
 ## Action and Dataset Rules
 
 - Keep Action dispatch separate from service/data logic.
-- Action currently supports only `service_center_lookup`; checklist and fee
-  modes do not belong in Action.
+- Action supports `service_center_lookup`, `check_slots`, and `book_slot`;
+  checklist and fee modes do not belong in Action.
 - Use the existing passport and driving-license JSON datasets without scraping
   or an external location API.
 - Never invent missing office fields or substitute another city.
 - Driving-license center coverage is intentionally incomplete.
 - There is no GPS, coordinate, distance, or map-based nearest-office feature.
+- Keep appointment rules in `backend/services/appointment_simulator.py`, not
+  in Action dispatch.
+- Appointment seed data is deterministic demo data, not trusted knowledge or
+  live availability. Never imply that a real government booking occurred.
+- Bookings belong in checkpointed `booked_slots`; do not mutate the seed JSON
+  or introduce global cross-session booking state.
 
 ## Completed Milestones
 
@@ -140,17 +164,18 @@ system.
 6. Action Agent and Service Center Lookup.
 7. Multi-Turn Conversational Session Flow.
 8. Grounded Checklist Builder and Fee Lookup.
+9. Appointment Simulator and multi-turn appointment workflow.
 
-The current completed milestone is **Milestone 8: Grounded Checklist Builder +
-Fee Lookup**.
+The current completed milestone is **Milestone 9: Appointment Simulator**.
 
 ## Current Limitations
 
-- Appointment routing falls back to Clarification; there is no appointment
-  node, slot checker, or booking simulator.
+- Appointment availability and booking are simulated from a small local seed;
+  there is no live government integration or real reservation.
+- Demo bookings are process/thread-local and disappear with the session.
 - Sessions and checkpoints are process-local only.
-- Context reuse covers pending location and service-ambiguous fee follow-ups,
-  not arbitrary conversation.
+- Context reuse covers pending location, office selection, appointment flow,
+  and service-ambiguous fee follow-ups, not arbitrary conversation.
 - Generic Clarification responses do not all support structured continuation.
 - Driving-license fee data is not reliable enough for numeric answers.
 - Driving-license service-center data is incomplete.
@@ -159,11 +184,10 @@ Fee Lookup**.
 
 ## Next Planned Milestone
 
-**Appointment Simulator / Appointment Workflow**
+**Journey/Progress Tracking and Orchestration Refinement**
 
-The next milestone should define the currently missing appointment graph path
-and its approved slot/booking simulation behavior. Do not treat slot checking
-or booking as implemented before that work exists.
+RAG latency profiling and optimization is also a technical improvement area,
+not a completed capability.
 
 ## Development Rules
 

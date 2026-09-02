@@ -23,3 +23,6 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+data/faiss_index/index.faiss
+data/faiss_index/store.pkl
