@@ -1,4 +1,4 @@
-from typing import List, Optional, TypedDict
+from typing import Dict, List, Optional, TypedDict
 
 
 class SourceRef(TypedDict):
@@ -10,6 +10,13 @@ class SourceRef(TypedDict):
     section: Optional[str]
     source_url: Optional[str]
     confidence: Optional[str]
+
+
+class JourneyProgress(TypedDict, total=False):
+    requirements: str
+    fees: str
+    service_center: str
+    appointment: str
 
 
 class PakAssistState(TypedDict, total=False):
@@ -26,3 +33,4 @@ class PakAssistState(TypedDict, total=False):
     selected_office: Optional[str]
     appointment_date: Optional[str]
     booked_slots: Optional[List[str]]
+    journeys: Dict[str, JourneyProgress]

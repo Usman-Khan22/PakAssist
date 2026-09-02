@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from backend.graph.state import PakAssistState, SourceRef
@@ -10,6 +11,7 @@ from backend.services.appointment_simulator import (
     book_slot,
     check_slots,
 )
+from backend.services.journey import is_journey_request, journey_summary, update_journey
 from backend.services.service_centers import (
     ServiceCenterLookupResult,
     lookup_service_centers,
@@ -28,12 +30,24 @@ _ORDINALS = {
     "4th": 3,
     "fifth": 4,
     "5th": 4,
+    "sixth": 5,
+    "6th": 5,
+    "seventh": 6,
+    "7th": 6,
+    "eighth": 7,
+    "8th": 7,
+    "ninth": 8,
+    "9th": 8,
+    "tenth": 9,
+    "10th": 9,
 }
 
 
 def _requested_action(state: PakAssistState) -> str | None:
     intent = state.get("intent", "").casefold()
     query = state.get("user_input", "").casefold()
+    if is_journey_request(intent, query):
+        return "journey_summary"
     if intent == "book_slot":
         return "book_slot"
     if intent == "check_slots":
@@ -114,30 +128,37 @@ def _normalize(value: str) -> str:
     return " ".join(value.casefold().replace("-", " ").split())
 
 
-def _resolve_office_reference(state: PakAssistState) -> str | None:
+def _resolve_office_reference(
+    state: PakAssistState,
+) -> tuple[str | None, bool]:
     query = _normalize(state.get("user_input", ""))
     options = state.get("office_options") or []
 
-    if query.isdigit():
-        index = int(query) - 1
-        if 0 <= index < len(options):
-            return options[index]
+    numeric_match = re.fullmatch(r"\d+", query) or re.search(
+        r"\b(?:for|office|option|number)\s+(?:the\s+)?(\d+)\b", query
+    )
+    if numeric_match:
+        raw_number = (
+            numeric_match.group(0) if query.isdigit() else numeric_match.group(1)
+        )
+        index = int(raw_number) - 1
+        return (options[index], False) if 0 <= index < len(options) else (None, True)
 
     for ordinal, index in _ORDINALS.items():
-        if ordinal in query and index < len(options):
-            return options[index]
+        if re.search(rf"\b{re.escape(ordinal)}\b", query):
+            return (options[index], False) if index < len(options) else (None, True)
 
     for office in options:
         normalized_office = _normalize(office)
         if normalized_office in query or query in normalized_office:
-            return office
+            return office, False
 
     selected = state.get("selected_office")
     if selected:
-        return selected
+        return selected, False
     if len(options) == 1:
-        return options[0]
-    return None
+        return options[0], False
+    return None, False
 
 
 def _office_selection_response(options: list[str]) -> str:
@@ -150,8 +171,52 @@ def _office_selection_response(options: list[str]) -> str:
     )
 
 
+def _invalid_office_reference_response(options: list[str]) -> str:
+    count = len(options)
+    return (
+        f"There are only {count} matching offices. "
+        f"Please choose an office from 1 to {count}."
+    )
+
+
 def _find_appointment_office(state: PakAssistState) -> tuple[str | None, dict | None]:
-    office = _resolve_office_reference(state)
+    current_lookup = lookup_service_centers(
+        state.get("service_type", "unknown"), state.get("user_input", "")
+    )
+    if current_lookup.status in {"found", "no_results"}:
+        if current_lookup.status == "no_results":
+            return None, {
+                "response": _lookup_response(current_lookup),
+                "sources": [],
+                "pending_clarification": None,
+                "pending_request": None,
+                "office_options": [],
+                "selected_office": None,
+                "appointment_date": None,
+            }
+
+        current_options = [center["office_name"] for center in current_lookup.centers]
+        if len(current_options) > 1:
+            return None, {
+                "response": _office_selection_response(current_options),
+                "sources": [],
+                "pending_clarification": "office",
+                "pending_request": state.get("user_input"),
+                "office_options": current_options,
+                "selected_office": None,
+                "appointment_date": None,
+            }
+        return current_options[0], None
+
+    office, invalid_reference = _resolve_office_reference(state)
+    if invalid_reference:
+        options = state.get("office_options") or []
+        return None, {
+            "response": _invalid_office_reference_response(options),
+            "sources": [],
+            "pending_clarification": "office",
+            "pending_request": state.get("user_input"),
+        }
     if office:
         return office, None
 
@@ -164,9 +229,7 @@ def _find_appointment_office(state: PakAssistState) -> tuple[str | None, dict | 
             "pending_request": state.get("user_input"),
         }
 
-    result = lookup_service_centers(
-        state.get("service_type", "unknown"), state.get("user_input", "")
-    )
+    result = current_lookup
     if result.status == "missing_location":
         return None, {
             "response": _lookup_response(result),
@@ -254,7 +317,7 @@ def _run_service_center_lookup(state: PakAssistState) -> dict:
     )
     pending_location = result.status == "missing_location"
     options = [center["office_name"] for center in result.centers]
-    return {
+    update = {
         "response": _lookup_response(result),
         "sources": _source_refs(result),
         "pending_clarification": "location" if pending_location else None,
@@ -263,6 +326,10 @@ def _run_service_center_lookup(state: PakAssistState) -> dict:
         "selected_office": options[0] if len(options) == 1 else None,
         "appointment_date": None,
     }
+    if result.status == "found":
+        status = "selected" if len(options) == 1 else "located"
+        update["journeys"] = update_journey(state, "service_center", status)
+    return update
 
 
 def _run_check_slots(state: PakAssistState) -> dict:
@@ -275,7 +342,7 @@ def _run_check_slots(state: PakAssistState) -> dict:
         office,
         state.get("booked_slots"),
     )
-    return {
+    update = {
         "response": _availability_response(result),
         "sources": [],
         "pending_clarification": None,
@@ -283,6 +350,14 @@ def _run_check_slots(state: PakAssistState) -> dict:
         "selected_office": office,
         "appointment_date": result.date,
     }
+    journeys = update_journey(state, "service_center", "selected")
+    update["journeys"] = journeys
+    if result.status == "available":
+        progress_state = {**state, "journeys": journeys}
+        update["journeys"] = update_journey(
+            progress_state, "appointment", "availability_checked"
+        )
+    return update
 
 
 def _run_book_slot(state: PakAssistState) -> dict:
@@ -299,7 +374,7 @@ def _run_book_slot(state: PakAssistState) -> dict:
     booked_slots = list(state.get("booked_slots") or [])
     if result.booked_slot_key:
         booked_slots.append(result.booked_slot_key)
-    return {
+    update = {
         "response": _booking_response(result),
         "sources": [],
         "pending_clarification": None,
@@ -308,6 +383,13 @@ def _run_book_slot(state: PakAssistState) -> dict:
         "appointment_date": result.date,
         "booked_slots": booked_slots,
     }
+    if result.status == "booked":
+        journeys = update_journey(state, "service_center", "selected")
+        progress_state = {**state, "journeys": journeys}
+        update["journeys"] = update_journey(
+            progress_state, "appointment", "demo_booked"
+        )
+    return update
 
 
 def action_agent(state: PakAssistState) -> dict:
@@ -319,6 +401,13 @@ def action_agent(state: PakAssistState) -> dict:
         return _run_check_slots(state)
     if action == "book_slot":
         return _run_book_slot(state)
+    if action == "journey_summary":
+        return {
+            "response": journey_summary(state),
+            "sources": [],
+            "pending_clarification": None,
+            "pending_request": None,
+        }
     return {
         "response": (
             "This action is not supported yet. I can look up service centers "

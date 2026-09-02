@@ -38,6 +38,7 @@ from backend.services.fee_lookup import (
     is_fee_request,
     select_fee_chunks,
 )
+from backend.services.journey import update_journey
 
 NO_CONTEXT_MESSAGE = (
     "I couldn't find reliable information for this request in the current "
@@ -238,4 +239,8 @@ def knowledge_agent(state: PakAssistState) -> PakAssistState:
 
     state["response"] = answer or NO_CONTEXT_MESSAGE
     state["sources"] = _chunks_to_source_refs(source_chunks)
+    if answer and checklist_mode:
+        state["journeys"] = update_journey(state, "requirements", "reviewed")
+    elif answer and fee_mode:
+        state["journeys"] = update_journey(state, "fees", "reviewed")
     return state
