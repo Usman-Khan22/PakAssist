@@ -2,24 +2,33 @@
 
 ## Implementation Status
 
-PakAssist is currently a backend-only, single-turn CLI application built on
-LangGraph. The implemented system includes structured planning, conditional
-routing, a grounded multimodal Knowledge path, an Action Agent with
-dataset-backed service-center lookup, and a clarification path.
+PakAssist is a backend-only, multi-turn CLI assistant built on LangGraph. Its
+implemented capabilities are:
 
-There is no HTTP API, frontend, database, authentication, conversational
-checkpointer, appointment workflow, or voice interface.
+- Gemini-backed structured planning;
+- conditional Knowledge, Action, and Clarification routing;
+- grounded multimodal RAG over trusted knowledge and ephemeral uploads;
+- grounded requirements checklists and verified fee lookup inside the
+  Knowledge path;
+- an Action Agent with dataset-backed service-center lookup; and
+- short-lived conversational state for location clarification and contextual
+  fee follow-ups.
 
-## Current Request Flow
+There is no HTTP API, frontend, database, authentication, long-term memory,
+appointment workflow, map integration, or voice interface.
+
+## Current Architecture
 
 ```text
-User Input
+Multi-turn CLI session
     |
+    | one UUID thread_id + InMemorySaver
     v
-Planner
+Planner / contextual continuation
     |
     v
 Conditional Router
+    |
     |-- Knowledge
     |      |
     |      v
@@ -27,265 +36,269 @@ Conditional Router
     |      |
     |      v
     |   Multimodal RAG
-    |      |-- Trusted persistent knowledge-base index
+    |      |-- Persistent trusted Markdown index
     |      `-- Ephemeral in-memory user-upload index
+    |      |
+    |      |-- Normal grounded answer
+    |      |-- Required-document chunks -> Checklist Builder
+    |      `-- Trusted fee chunks -> Fee Lookup formatter
     |
     |-- Action
     |      |
     |      v
-    |   Action Agent
-    |      |
-    |      v
-    |   Service Center Lookup
+    |   Action Agent -> Service Center Lookup -> JSON datasets
     |
     `-- Clarification
 ```
 
-Every selected downstream node is terminal for the current invocation and
-connects to `END`.
+Each graph invocation still reaches `END`, but the CLI invokes the same
+compiled graph repeatedly with one stable thread ID. The in-memory checkpointer
+merges state between turns in that thread.
 
-## CLI Entry Point
+Checklist Builder and Fee Lookup are not Action Agent capabilities. They are
+specialized grounded response modes selected by the Knowledge Agent after RAG
+retrieval. The Action Agent remains a separate dispatch layer whose only
+implemented action is `service_center_lookup`.
 
-The entry point is the repository-root `main.py`; there is no
-`backend/main.py`.
+## Multi-Turn CLI and Session Lifecycle
 
-For each execution, the CLI:
+The entry point is repository-root `main.py`; there is no `backend/main.py`.
+`run_cli()`:
 
-1. loads `.env` values;
-2. builds the compiled LangGraph graph;
-3. reads one user query from `PakAssist>`;
-4. treats command-line arguments as optional uploaded file paths;
-5. invokes the graph once; and
-6. prints the response and, when present, source labels, origins, and
-   confidence values.
+1. compiles the graph with LangGraph `InMemorySaver`;
+2. creates one random UUID thread ID for the conversation;
+3. repeatedly reads input from `PakAssist>`;
+4. invokes the graph with the same thread ID on each turn;
+5. prints the response and available source labels, origins, and confidence;
+6. ignores blank input; and
+7. exits cleanly on `exit`, `quit`, or EOF.
 
-`PlannerError` is reported as a CLI failure message. The CLI is not a
-multi-turn conversation loop and does not retain a checkpointer-backed
-conversation between inputs.
+Command-line file paths are supplied as `uploaded_files` on the first turn.
+Later turns explicitly set that input field to `None`. Session checkpoints are
+process-local and disappear when the CLI exits; they are not long-term memory.
+A different thread ID does not inherit a previous thread's pending state.
+
+### Supported contextual continuation
+
+The current session logic intentionally supports two narrow cases:
+
+1. **Missing service-center location.** When Action lookup needs a location,
+   it stores `pending_clarification="location"` and the original query. A reply
+   such as `Karachi` is combined with the pending request, while its previous
+   service and Action route are retained. The pending fields are then cleared.
+2. **Service-ambiguous fee follow-up.** The Planner still evaluates a question
+   such as `How much does it cost?`. If it identifies a fee request but returns
+   an unknown service, the planner graph node may reuse a known, non-unknown
+   `service_type` from the same checkpointed thread and route to Knowledge as
+   `fee_lookup`.
+
+This is not general conversational intent resolution. Generic clarification
+answers and arbitrary follow-ups are not reconstructed from full message
+history.
 
 ## Shared State
 
-`backend/graph/state.py` defines `PakAssistState` as a `TypedDict` with
-`total=False`. Its current fields are:
+`backend/graph/state.py` defines `PakAssistState` as
+`TypedDict(total=False)` with exactly these fields:
 
 | Field | Purpose |
 |---|---|
-| `user_input` | Raw user query passed to the Planner and downstream agent |
+| `user_input` | Current user text, or the reconstructed pending location request |
 | `intent` | Planner-produced high-level goal |
-| `service_type` | Planner-produced government service, such as `passport` or `driving_license` |
+| `service_type` | Planner-produced or safely inherited service context |
 | `next_step` | Planner-produced downstream decision |
-| `response` | User-facing response written by the selected downstream node |
-| `uploaded_files` | Optional list of image/PDF paths for the Knowledge path |
-| `sources` | Optional source references for retrieved knowledge or service-center results |
+| `response` | User-facing downstream response |
+| `uploaded_files` | Optional list of image/PDF paths for Knowledge retrieval |
+| `sources` | Optional trusted knowledge, upload, or service-center references |
+| `pending_clarification` | Missing datum for supported continuation; currently `location` |
+| `pending_request` | Original request retained while location is pending |
 
-`SourceRef` contains:
+`SourceRef` contains `label`, `origin`, `service`, `section`, `source_url`, and
+`confidence`. Knowledge and Action both use this existing source contract; no
+second citation mechanism exists.
 
-| Field | Purpose |
-|---|---|
-| `label` | User-facing source label |
-| `origin` | `knowledge_base` or `user_upload` |
-| `service` | Associated service, when known |
-| `section` | Knowledge-base section, upload page, or service-center section |
-| `source_url` | Source URL when supplied by the underlying content |
-| `confidence` | Source confidence when available |
+## Planner and Conditional Routing
 
-The Planner node owns `intent`, `service_type`, and `next_step`. Knowledge and
-Action nodes write `response` and `sources`.
+`backend/agents/planner.py` calls Gemini through `google-genai` and validates
+native structured output with Pydantic `PlannerOutput`:
 
-## Planner Agent
+- `intent`: a short snake-case goal, including established values such as
+  `service_center_lookup`, `requirements_checklist`, and `fee_lookup`;
+- `service_type`: normally `passport`, `driving_license`, or `unknown`; and
+- `next_step`: `knowledge`, `action`, `appointment`, or `clarify`.
 
-`backend/agents/planner.py` calls Gemini through the direct `google-genai`
-client and validates the result with the Pydantic `PlannerOutput` model.
-Planner output contains:
+The prompt directs requirements/checklist and fee/cost questions to Knowledge,
+service-center requests to Action, and ambiguous requests to Clarification.
+English, Urdu, and Roman Urdu are accepted at prompt level, but there is no
+complete localization subsystem.
 
-- `intent`: a short snake-case goal such as `apply_for_service`,
-  `renew_service`, or `service_center_lookup`; `unknown` is used when unclear;
-- `service_type`: the identified service, currently commonly `passport` or
-  `driving_license`, or `unknown`; and
-- `next_step`: one of `knowledge`, `action`, `appointment`, or `clarify`.
+`backend/graph/graph.py` routes as follows:
 
-The prompt supports classification of English, Urdu, and Roman Urdu input and
-prefers clarification rather than guessing. This is prompt-level language
-handling, not a complete localization subsystem. Service-center and office
-lookup requests are explicitly classified for the Action route.
+- unknown intent or service -> Clarification;
+- known `next_step="knowledge"` -> Knowledge Agent;
+- known `next_step="action"` -> Action Agent; and
+- all other values, including `appointment`, -> Clarification because no
+  appointment node exists yet.
 
-Gemini structured output uses:
+The Planner node also implements the two contextual continuation rules above.
+It does not replace the Planner with a separate memory agent.
 
-- `response_mime_type="application/json"`;
-- `response_schema=PlannerOutput`;
-- no tools; and
-- `automatic_function_calling.disable=True`.
+### Gemini structured-output constraint
 
-The response is parsed with `json.loads` and validated with Pydantic before it
-enters graph state. API errors, empty responses, malformed JSON, and validation
-failures become `PlannerError`. `GEMINI_API_KEY` and optional `GEMINI_MODEL`
-come from the environment; the default model is `gemini-2.5-flash`.
+Planner output uses `response_mime_type="application/json"`,
+`response_schema=PlannerOutput`, no tools, and
+`automatic_function_calling.disable=True`. The response is parsed with
+`json.loads` and validated before reaching graph state. Failures become
+`PlannerError`.
 
-## Conditional Routing
+## Knowledge Agent and Multimodal RAG
 
-`backend/graph/graph.py` compiles the current graph:
+`backend/agents/knowledge.py` orchestrates all knowledge-grounded behavior:
 
-```text
-START -> Planner -> Conditional Router -> Knowledge / Action / Clarification -> END
-```
+1. obtain the cached retriever for the persistent official index;
+2. extract and index supported user uploads when provided;
+3. select a normal, checklist, or fee retrieval query;
+4. retrieve candidate chunks;
+5. apply specialized trusted-section selection for checklist or fee mode;
+6. return a safe fallback without generation when suitable context is absent;
+7. generate only from the selected context; and
+8. write `response` plus deduplicated `sources`.
 
-Routing uses the validated Planner fields:
+Normal grounded generation explicitly forbids inventing missing requirements,
+fees, or process steps. Low- and medium-confidence information must be
+identified as uncertain. Knowledge generation uses no tools and keeps Gemini
+automatic function calling disabled.
 
-- an unknown `intent` or `service_type` always routes to Clarification;
-- a known request with `next_step="knowledge"` routes to Knowledge;
-- a known request with `next_step="action"` routes to Action; and
-- every other value, including the currently unimplemented `appointment`
-  path, routes to Clarification.
+### RAG implementation
 
-The Clarification node returns: `Please clarify which government service you
-need.` It currently ends the invocation; the user must start another CLI
-execution to answer it.
+The single RAG implementation remains under `backend/rag/`:
 
-## Knowledge Agent
+- `loader.py` loads trusted Markdown by `##` section and propagates file-level
+  source URL and confidence metadata;
+- `chunker.py` preserves short sections and splits long sections with overlap;
+- `embeddings.py` uses normalized
+  `sentence-transformers/all-MiniLM-L6-v2` embeddings;
+- `vector_store.py` uses FAISS `IndexFlatIP` and persists `index.faiss` plus
+  the parallel text/metadata `store.pkl`;
+- `retriever.py` merges ranked results from the persistent official index and
+  optional in-memory upload index while retaining `knowledge_base` versus
+  `user_upload` origins; and
+- `multimodal.py` uses Gemini for PNG/JPG/JPEG/WebP extraction, PyMuPDF for
+  textual PDFs, and Gemini image extraction for scanned/image-heavy PDF pages.
 
-`backend/agents/knowledge.py` is the real Knowledge graph node. It:
+`scripts/build_index.py` rebuilds the official index from the Markdown files.
+User uploads are never written into it. The service-center JSON files are not
+part of semantic RAG and are read directly by the Action service.
 
-1. obtains the persisted official knowledge-base retriever;
-2. extracts and indexes supported uploaded files when supplied;
-3. retrieves relevant chunks from the trusted and upload indexes;
-4. returns a safe no-context response without calling Gemini when no chunks
-   meet the retrieval threshold;
-5. builds a context block containing origin, service, section, and confidence
-   metadata;
-6. asks Gemini to generate an answer using only that context; and
-7. writes the grounded `response` and deduplicated `sources` to state.
+All direct Gemini generation/extraction paths use no tools and explicitly
+disable automatic function calling. The AFC fix must remain intact unless the
+architecture is intentionally redesigned.
 
-The generation prompt prohibits filling gaps with general model knowledge and
-requires low- or medium-confidence context to be identified as such. Knowledge
-generation uses no tools and explicitly disables automatic function calling.
+## Grounded Checklist Builder
 
-## Multimodal RAG
+`backend/services/checklist_builder.py` contains request detection, a
+requirements-focused retrieval-query builder, trusted section selection, and
+formatting instructions. It contains no passport or driving-license document
+facts.
 
-The single RAG implementation lives under `backend/rag/`:
+For a checklist request, the Knowledge Agent:
 
-- `loader.py` loads every knowledge-base Markdown file by `##` section. It
-  applies file-level source URL and confidence metadata from the `Metadata`
-  section to each retrievable section.
-- `chunker.py` keeps short sections intact and splits only long sections on
-  paragraph boundaries, with overlap and a hard-split fallback.
-- `embeddings.py` lazily loads
-  `sentence-transformers/all-MiniLM-L6-v2`, generates 384-dimensional vectors,
-  and L2-normalizes them so inner product represents cosine similarity.
-- `vector_store.py` wraps FAISS `IndexFlatIP`, stores text and metadata beside
-  vectors, and saves/loads `index.faiss` plus `store.pkl`.
-- `retriever.py` searches the persisted official index and, when present, an
-  in-memory upload index. Results retain an origin of `knowledge_base` or
-  `user_upload`, are filtered by a configurable minimum score, merged, ranked,
-  and limited to the configured top-k.
-- `multimodal.py` extracts text from images with Gemini and from PDFs
-  page-by-page with PyMuPDF. PDF pages with little extractable text are
-  rasterized and sent through the same Gemini image extraction path.
+1. performs a requirements-focused RAG retrieval;
+2. keeps only `knowledge_base` chunks for the current `service_type` whose
+   section is a `Required Documents` section;
+3. passes only those chunks to the checklist formatting prompt;
+4. formats supported items as an actionable `☐` list; and
+5. builds `sources` from those same selected chunks.
 
-Supported image extensions are PNG, JPG/JPEG, and WebP. PDF and image
-extraction do not persist user content. The upload FAISS store exists only in
-memory; with the current one-query CLI, its lifetime is the current process.
-The official knowledge-base store is separate and persists under
-`data/faiss_index/`.
+Adult/minor, conditional, renewal, and province-specific distinctions are
+preserved when present in context. Uncertainty must remain visible. If no
+trusted required-document section is retrieved, the builder returns a
+checklist-specific information-not-found response instead of inventing items.
+Questions such as validity, eligibility, or process explanations remain normal
+Knowledge responses unless their intent/query matches the focused checklist
+detector.
 
-`scripts/build_index.py` rebuilds the official index by loading the Markdown
-knowledge base, section-aware chunking it, embedding the chunks, and saving the
-FAISS index and parallel metadata store. The service-center JSON datasets are
-not part of this semantic index; the Action path reads them directly.
+## Grounded Fee Lookup
 
-## Trusted Knowledge and Source Visibility
+`backend/services/fee_lookup.py` contains fee request detection, a fee-focused
+retrieval-query builder, trusted fee-section selection, and grounded formatting
+instructions. It contains no fee amounts.
 
-The trusted textual knowledge base currently covers passport and driving
-license guidance in `knowledge_base/passport.md` and
-`knowledge_base/driving_license.md`. Their source and confidence metadata flow
-through chunks, retrieved context, and `SourceRef` entries.
+For a fee request, the Knowledge Agent:
 
-User uploads remain distinguishable from official knowledge through their
-`user_upload` origin and upload-specific document type. Official content and
-uploads may both contribute retrieved chunks, but they are indexed separately
-and user uploads are never written into the persistent official index.
+1. retrieves fee-focused RAG candidates;
+2. keeps `knowledge_base` fee sections for the current service;
+3. permits numeric generation only from chunks marked high confidence and not
+   containing unverified information;
+4. asks Gemini to preserve every retrieved category and distinction rather
+   than selecting or collapsing one amount; and
+5. builds `sources` from the selected fee chunks.
 
-## Action Agent
+The current passport KB contains high-confidence official fee tables with MRP,
+Fast Track, e-Passport, validity/page/urgency distinctions, surcharges, and a
+warning to re-confirm current values. The driving-license KB explicitly marks
+its numeric fee ranges medium-confidence and unverified. Consequently, current
+driving-license fee requests return a reliable-fee-not-found response rather
+than quoting those ranges. When matching but unreliable fee context exists,
+its source may still be shown to explain the limitation; Gemini generation is
+skipped.
 
-`backend/agents/action.py` is the real Action graph node. It determines the
-requested action from Planner intent and lookup language in the user query,
-then dispatches to the supported action implementation.
+## Action Agent and Service Center Lookup
 
-The only implemented action is `service_center_lookup`. Requests routed to
-Action that do not select this action receive a safe response explaining that
-the action is not supported yet and that service-center lookup is currently
-available. This dispatch layer is intentionally separate from the dataset and
-matching logic so additional actions can be added later without placing data
-processing in the graph node.
+`backend/agents/action.py` selects and dispatches actions. Its only implemented
+action is `service_center_lookup`; unsupported Action requests receive a safe
+unsupported-action response. Checklist and fee requests do not use this agent.
 
-## Service Center Lookup
+`backend/services/service_centers.py` separately reads:
 
-`backend/services/service_centers.py` contains the deterministic lookup logic.
-It reads the existing JSON datasets directly:
+- 180 passport office records; and
+- 6 intentionally incomplete driving-license records.
 
-- `knowledge_base/passport_service_centers.json`: 180 passport offices with
-  region, office name, address, phone when published, service, and source;
-- `knowledge_base/driving_license_service_centers.json`: 6 intentionally
-  incomplete records with province, office name, address, phone, hours,
-  documents, services, portal, confidence, and source where available.
+Lookup performs deterministic textual matching over available region/province,
+office-name, and address data. It can recognize explicit locations, asks for a
+city or region when missing, returns no result for an unsupported location,
+and formats only fields present in the matched records. Results may populate
+the shared `sources` field.
 
-Lookup is textual rather than geographic. It extracts an explicit location
-from phrases such as `in`, `near`, `at`, or `around`, or recognizes available
-region/province and office names. Matching then checks the dataset's region or
-province, office name, and address. Up to five matching records are returned.
-
-The Action Agent formats only fields present in a matched record, including
-address, phone, service information, hours, portal, confidence, and source as
-available. It can also convert matched records into existing `SourceRef`
-entries. It does not invent missing values.
-
-- If no location is supplied, the response asks for a city or region.
-- If a supplied location has no matching record, the response states that the
-  current dataset has no result.
-- If the service type has no configured dataset, the response states that
-  lookup is unavailable for that service.
-
-There is no web scraping, external location service, GPS, coordinate data,
-distance calculation, or map integration. In particular, the driving-license
-dataset is deliberately partial: a missing city such as Lahore is a data
-coverage limitation, not evidence that the lookup failed or permission to
-substitute a different city.
+There is no scraping, external location API, GPS, coordinate, distance, or map
+calculation. Missing driving-license cities such as Lahore reflect incomplete
+dataset coverage and must never be replaced with a different city's office.
 
 ## Testing
 
-The test suite uses mocked Gemini calls where appropriate and covers:
+The test suite mocks external Gemini calls where appropriate and covers:
 
-- structured Planner parsing for English and Roman Urdu examples;
-- ambiguous Planner output and Clarification routing;
-- Knowledge, Action, and Clarification graph routes;
-- grounded passport and driving-license retrieval;
-- safe no-context behavior without an unnecessary Gemini generation call;
-- image extraction and retrieval from an in-memory upload index;
-- text PDF extraction and retrieval;
-- passport and driving-license service-center results;
-- missing and unsupported locations;
-- refusal to substitute another city for missing driving-license data; and
-- unsupported Action requests.
+- Planner parsing and graph routing;
+- Knowledge, Action, and Clarification preservation;
+- official and uploaded multimodal RAG retrieval;
+- safe no-context behavior;
+- passport and driving-license service-center matches and failure cases;
+- location clarification continuation and thread isolation;
+- CLI `exit`/`quit` and stable thread IDs;
+- grounded passport and driving-license checklists;
+- high-confidence passport fee handling;
+- refusal to generate from unverified driving-license fees;
+- ordinary Knowledge responses remaining unformatted; and
+- contextual fee follow-up using the checkpointed service.
 
 ## Current Limitations and Planned Work
 
 The following are not implemented:
 
-- multi-turn conversational CLI/session flow;
-- persistent conversation state or LangGraph checkpointer integration;
-- checklist builder action;
-- fee lookup action;
-- appointment slot checking;
-- appointment booking simulator;
-- journey/progress tracking refinement;
-- GPS or map-based nearest-office calculation;
-- broader service-center coverage, especially driving-license branches;
-- HTTP API, frontend, and production file-upload UI;
+- appointment node, slot checking, or appointment booking simulator;
+- persistent sessions across process restarts or database-backed memory;
+- broad conversational history and general follow-up intent resolution;
+- generic continuation for every Clarification response;
+- reliable driving-license fee amounts;
+- complete driving-license service-center coverage;
+- GPS/map-based nearest-office calculation;
+- journey/progress tracking;
+- HTTP API, frontend, or production upload UI;
 - database, authentication, or multi-user storage;
 - voice integration;
-- broader Urdu and regional-language polish; and
-- additional citizen services beyond the current passport and driving-license
-  scope.
+- broader Urdu/regional-language polish; and
+- additional services beyond passport and driving license.
 
-The next planned milestone is **Multi-turn Conversational CLI / Session Flow**,
-so clarification and follow-up answers can continue within one process. Later
-Action milestones are Checklist Builder, Fee Lookup, and Appointment Simulator.
+The next planned milestone is **Appointment Simulator / Appointment
+Workflow**, including an explicit appointment graph path and only the slot or
+booking behavior approved for that milestone.
