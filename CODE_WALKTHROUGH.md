@@ -2,8 +2,8 @@
 
 This guide is for a developer who understands basic Python and wants a mental
 model of PakAssist without reading every helper function. It follows the code
-that exists today through Milestone 9, including multi-turn sessions, grounded
-assistance, and deterministic appointment simulation.
+that exists today through Milestone 10 and subsequent routing/context fixes,
+including grounded assistance, appointment simulation, and journey tracking.
 
 ## 1. Big Picture
 
@@ -16,9 +16,11 @@ questions. It can:
 - read relevant text from uploaded images and PDFs;
 - find passport and driving-license service centers from local JSON datasets;
 - check and book deterministic demo appointment slots after office selection;
+- track per-service assistance progress and summarize what remains;
+- orient broad service goals toward supported next steps;
 - ask for a missing location and continue when the user replies; and
-- reuse a known service for a narrow fee follow-up such as “How much does it
-  cost?”
+- reuse a known service for contextual checklist, fee, appointment, and
+  progress follow-ups.
 
 The main flow is:
 
@@ -33,17 +35,21 @@ LangGraph Planner
   |
   v
 Conditional Router
-  |-- Knowledge -> Knowledge Agent -> RAG
-  |                                  |-- normal grounded answer
-  |                                  |-- grounded checklist
-  |                                  `-- grounded fee answer
+  |-- Knowledge -> broad goal -> Journey orientation
+  |              `-> Knowledge Agent -> RAG
+  |                                      |-- normal grounded answer
+  |                                      |-- grounded checklist
+  |                                      `-- grounded fee answer
   |
   |-- Action -> Action Agent
   |              |-- Service Center Lookup
   |              |-- Check Slots -> Appointment Simulator
-  |              `-- Book Slot -> Appointment Simulator
+  |              |-- Book Slot -> Appointment Simulator
+  |              `-- Journey Summary
   |
   `-- Clarification
+
+Successful assistance -> per-service journey state
 ```
 
 The components have different jobs:
@@ -61,6 +67,8 @@ The components have different jobs:
 - **Service Center Lookup** reads and filters local JSON records.
 - The **Appointment Simulator** reads immutable demo schedules and validates
   session-local bookings; it is not a live appointment system.
+- **Journey Tracking** records assistance outcomes separately for each service
+  without claiming verified government completion.
 - **Clarification** is the safe fallback when routing is uncertain.
 - **Session state** lets a small amount of context survive between turns in the
   same process.
@@ -125,6 +133,11 @@ The current fields are:
 - `selected_office`: the office chosen for appointment simulation.
 - `appointment_date`: the demo date configured for that office.
 - `booked_slots`: slot keys booked in this checkpointed session.
+- `journeys`: per-service assistance progress retained by the checkpoint.
+
+`JourneyProgress` has four optional string fields: `requirements`, `fees`,
+`service_center`, and `appointment`. Current statuses are `reviewed`, `located`,
+`selected`, `availability_checked`, and `demo_booked`, depending on the step.
 
 `SourceRef` is the common source shape used by Knowledge and Action responses.
 It stores a display label, origin, service, section, source URL, and confidence
@@ -164,9 +177,10 @@ Routing rules are intentionally conservative:
 
 Before calling the Planner, the planner node resolves pending location or
 office answers. After calling it, the node can safely reuse service context for
-fee and exact appointment intents. Exact `check_slots` and `book_slot` intents
-are normalized to Action. These are small compatibility rules, not a separate
-conversation-memory agent.
+checklist, fee, progress, and exact appointment intents. It also normalizes
+broad apply/get/renew goals to `service_journey` on Knowledge, and exact
+`check_slots`/`book_slot` intents to Action. These are small orchestration
+rules, not a separate conversation-memory agent.
 
 ## 5. Planner - `backend/agents/planner.py`
 
@@ -194,6 +208,16 @@ Conceptual examples:
   intent       -> fee_lookup
   service_type -> passport
   next_step    -> knowledge
+
+"I want to apply for a passport"
+  intent       -> service_journey
+  service_type -> passport
+  next_step    -> knowledge
+
+"What's left?"
+  intent       -> journey_summary
+  service_type -> current service when safely reusable
+  next_step    -> action
 ```
 
 The contract also permits `appointment`, but the implemented simulator does
@@ -206,9 +230,10 @@ and validates it before state is updated. Tools are not configured, and
 automatic function calling (AFC) is explicitly disabled. That detail is an
 important compatibility constraint throughout this project.
 
-For a contextual fee follow-up, the Planner still runs. If the new turn is a
-fee request but the Planner cannot identify a service, the graph may reuse a
-known service from the same checkpointed thread and route to Knowledge.
+Broad service goals return a short orientation and initialize an empty journey;
+they do not submit an application or advance progress. For contextual
+checklist/fee follow-ups, the Planner still runs, and the graph may reuse a
+known service when the new request omits it.
 
 ## 6. Knowledge Path
 
@@ -364,8 +389,9 @@ Planner
 ```
 
 `backend/agents/action.py` interprets the Planner intent and request language.
-It dispatches `service_center_lookup`, `check_slots`, and `book_slot`. Any other
-Action request receives a safe unsupported-action message.
+It dispatches `service_center_lookup`, `check_slots`, `book_slot`, and
+`journey_summary`. Any other Action request receives a safe unsupported-action
+message. Checklist and fee assistance remain grounded Knowledge features.
 
 The distinction is useful:
 
@@ -409,7 +435,10 @@ safely return an Attock office.
 slot checking and demo booking. The Action Agent first resolves an office by
 reusing Service Center Lookup. A single match can be selected automatically;
 multiple matches are stored in `office_options` and prompt the user to choose
-by office name, number, or a simple ordinal.
+by office name, number, or a simple ordinal. Supported ordinals run from first/
+`1st` through tenth/`10th`, but every reference is validated against the active
+option count. An invalid sixth choice when only five offices exist returns a
+selection error and does not reuse a previously selected office.
 
 The service reads `data/appointment_slots.json`, which is a small immutable demo
 schedule rather than trusted knowledge or live government availability. It
@@ -423,7 +452,51 @@ that a real appointment must be made through the official government system.
 Because demo schedules are not trusted evidence, appointment responses use an
 empty `sources` list.
 
-## 11. Multi-Turn Conversation
+Explicit current-turn context is checked before retained office context. A new
+service or location performs a fresh center lookup, replaces old
+`office_options`, and clears an incompatible `selected_office` and
+`appointment_date`. If the turn contains no override, the current selection or
+options remain available for dependent requests such as `the first one` or
+`show appointments again`.
+
+## 11. Citizen Journey / Progress Tracking
+
+`backend/services/journey.py` is the small shared progress service. It can
+initialize an empty journey, copy and update one service-specific step,
+recognize summary requests, create a broad-goal orientation, and format the
+current summary.
+
+```text
+successful grounded/deterministic result
+  -> Knowledge Agent or Action Agent calls update_journey()
+  -> journeys[current service][step] changes
+  -> LangGraph checkpoint retains the mapping
+  -> later journey_summary reads that service entry
+```
+
+The update points use capability success signals:
+
+- a nonempty checklist generated from selected trusted requirement chunks ->
+  `requirements="reviewed"`;
+- a nonempty fee answer generated from reliable fee chunks ->
+  `fees="reviewed"`;
+- a found center result -> `service_center="located"`, or `"selected"` for one
+  result/appointment office selection;
+- a successful slot check -> `appointment="availability_checked"`; and
+- only a successful simulator booking -> `appointment="demo_booked"`.
+
+Failures do not advance the corresponding step. Availability checking is an
+intermediate assistance status, not a booking. All wording describes what
+PakAssist reviewed, located, or simulated; it does not claim document
+submission, payment, an office visit, an application, or a real appointment.
+Passport and driving-license entries are stored separately.
+
+Broad goals such as `I want to apply for a passport` establish the service and
+an empty journey, then suggest starting with documents. `Show my progress`,
+`What have we done`, and `What's left` use `journey_summary` through Action and
+show completed assistance plus pending supported steps.
+
+## 12. Multi-Turn Conversation
 
 The practical location flow is:
 
@@ -470,12 +543,20 @@ User: Book 10:00
   -> a repeated booking in this session is rejected
 ```
 
+State reuse follows one precedence rule: explicit information in the newest
+turn wins over older context. For example, an appointment request naming
+Karachi performs a new Karachi lookup even if Lahore options are stored. Those
+new results replace the old options and invalidate the Lahore selection. When
+the user does not name a new service/location, references such as `first one`
+can reuse the active options. An explicit switch to driving license likewise
+changes the active service without copying passport journey progress into it.
+
 This context exists only in memory. Closing the process loses it. A new
 session gets a new thread ID and does not inherit pending graph state. The
 implementation does not provide general chat history, generic pronoun
 resolution, or continuation for every clarification type.
 
-## 12. End-to-End Examples
+## 13. End-to-End Examples
 
 ### Grounded checklist
 
@@ -545,10 +626,45 @@ resolution, or continuation for every clarification type.
 This result is explicitly a simulation, not live availability or a government
 reservation.
 
-## 13. Important Files at a Glance
+### Complete assistance journey
+
+```text
+"I want to apply for a passport"
+  -> service_journey / passport / knowledge
+  -> empty passport journey + supported-flow orientation
+
+"What documents do I need?"
+  -> contextual passport Checklist/RAG succeeds
+  -> requirements = reviewed
+
+"How much does it cost?"
+  -> contextual passport Fee/RAG succeeds
+  -> fees = reviewed
+
+"Find an office in Karachi"
+  -> Service Center Lookup succeeds
+  -> service_center = located
+
+"Show appointments for the first one"
+  -> office selected + demo availability shown
+  -> service_center = selected
+  -> appointment = availability_checked
+
+"Book the 10:00 slot"
+  -> simulated booking succeeds
+  -> appointment = demo_booked
+
+"What's left?"
+  -> Journey Summary reads the passport entry
+```
+
+None of these statuses verifies completion in a government system.
+
+## 14. Important Files at a Glance
 
 - `main.py`: starts and maintains the CLI session.
-- `backend/graph/state.py`: defines shared state and source references.
+- `backend/graph/state.py`: defines shared state, source references, and the
+  journey progress shape.
 - `backend/graph/graph.py`: defines nodes, edges, routing, and contextual
   continuation.
 - `backend/agents/planner.py`: converts user text into validated routing data.
@@ -562,15 +678,17 @@ reservation.
 - `backend/services/service_centers.py`: deterministic JSON center lookup.
 - `backend/services/appointment_simulator.py`: deterministic slot and booking
   rules.
+- `backend/services/journey.py`: per-service progress updates, broad-goal
+  orientation, request detection, and summary wording.
 - `data/appointment_slots.json`: immutable demo schedules.
 - `backend/rag/`: loading, chunking, embeddings, FAISS, retrieval, and
   multimodal extraction.
 - `scripts/build_index.py`: rebuilds the persistent official index.
 - `knowledge_base/`: trusted Markdown guidance and center datasets.
-- `tests/`: route, RAG, session, Action, checklist, fee, and appointment
-  behavior.
+- `tests/`: route, RAG, session, Action, checklist, fee, appointment, journey,
+  state-precedence, and office-reference behavior.
 
-## 14. If I Want to Change X, Where Do I Go?
+## 15. If I Want to Change X, Where Do I Go?
 
 - Change Planner classifications or routing guidance ->
   `backend/agents/planner.py`.
@@ -600,17 +718,28 @@ reservation.
 - Change configured demo office dates or slots ->
   `data/appointment_slots.json`; keep it clearly simulated and immutable at
   runtime.
+- Change journey representation -> `backend/graph/state.py` and
+  `backend/services/journey.py`.
+- Change when successful assistance advances progress -> integration points in
+  `backend/agents/knowledge.py` and `backend/agents/action.py`.
+- Change progress-summary wording or broad-goal orientation ->
+  `backend/services/journey.py`.
+- Change broad service-goal or progress routing -> `backend/agents/planner.py`
+  and `backend/graph/graph.py`.
+- Change current-turn context precedence or office-reference validation ->
+  `backend/graph/graph.py` and `backend/agents/action.py`.
 - Change the interactive loop, exits, or thread creation -> `main.py`.
 - Add tests -> choose the focused file under `tests/`; session behavior belongs
   in `test_session_flow.py`, checklist/fee behavior belongs in
-  `test_grounded_assistance.py`, and appointment behavior belongs in
-  `test_appointment_simulator.py`.
+  `test_grounded_assistance.py`, appointment/context behavior belongs in
+  `test_appointment_simulator.py`, and journey behavior belongs in
+  `test_journey.py`.
 
 When adding a future capability, first decide whether it is Knowledge or
 Action. If it answers from trusted facts, extend the Knowledge path. If it
 performs a deterministic operation, use Action plus a separate service.
 
-## 15. What I Do Not Need to Understand Yet
+## 16. What I Do Not Need to Understand Yet
 
 To work productively at first, you do not need to study:
 
@@ -626,20 +755,24 @@ Start with `main.py`, state, graph, and the three agents. Then follow either the
 Knowledge path into `backend/rag/` or the Action path into the relevant service
 module depending on the feature you are changing.
 
-## 16. Current Limitations and Next Areas
+## 17. Current Limitations and Next Areas
 
 - Appointment availability is a small deterministic demo, not live government
   data, and no real reservation is created.
 - Demo bookings and conversation state are process/thread-local; they do not
   persist across restarts or represent multi-user storage.
 - Context supports location, office selection, appointment flow, and narrow
-  fee continuation, not general chat memory.
+  checklist/fee/progress continuation, not general chat memory or unrestricted
+  coreference resolution.
+- Journey state tracks PakAssist assistance only and cannot verify submission,
+  payment, office visits, application status, or real-world completion.
 - Driving-license numeric fees are not reliable enough to quote.
 - Driving-license center coverage is incomplete.
 - “Nearest” means textual location matching, not geographic distance.
 - There is no API, frontend, production upload UI, database, authentication,
-  voice layer, GPS/maps, or progress tracking.
+  voice layer, or GPS/maps.
 
-The next planned area is Journey/Progress Tracking and Orchestration
-Refinement. RAG latency profiling and optimization remains a technical
-improvement area.
+Journey Tracking is implemented through Milestone 10. No later agent/backend
+milestone is established here. RAG latency profiling and optimization remains
+a technical improvement area. API/FastAPI work is intentionally left for a
+separate review and documentation update.
