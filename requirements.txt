@@ -10,3 +10,6 @@ PyMuPDF
 google-generativeai
 numpy
 Pillow
+fastapi
+uvicorn
+python-multipart
