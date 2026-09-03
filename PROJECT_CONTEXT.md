@@ -20,8 +20,12 @@ Completed capabilities:
 - contextual service reuse for fee follow-ups;
 - grounded Checklist Builder;
 - high-confidence trusted Fee Lookup with safe missing/unverified handling;
-- deterministic demo appointment slot checking and booking; and
-- multi-turn office selection with session-local duplicate-booking prevention.
+- deterministic demo appointment slot checking and booking;
+- multi-turn office selection with session-local duplicate-booking prevention;
+- per-service Citizen Journey / Progress Tracking and summaries;
+- broad service-goal orientation without false progress advancement; and
+- explicit current-turn context precedence with strict office-reference
+  validation.
 
 ## Current Graph
 
@@ -29,27 +33,34 @@ Completed capabilities:
 Multi-turn CLI (one thread_id)
   -> Planner / contextual continuation
   -> Conditional Router
-       |-- Knowledge -> Knowledge Agent -> Multimodal RAG
-       |      |-- normal grounded answer
-       |      |-- trusted requirements -> Checklist Builder
-       |      `-- trusted fee sections -> Fee Lookup
+       |-- Knowledge
+       |      |-- broad service goal -> Journey orientation
+       |      `-- Knowledge Agent -> Multimodal RAG
+       |             |-- normal grounded answer
+       |             |-- trusted requirements -> Checklist Builder
+       |             `-- trusted fee sections -> Fee Lookup
        |-- Action -> Action Agent
        |      |-- Service Center Lookup
        |      |-- Check Slots -> Appointment Simulator
-       |      `-- Book Slot -> Appointment Simulator
+       |      |-- Book Slot -> Appointment Simulator
+       |      `-- Journey Summary
        `-- Clarification
+
+Successful assistance -> per-service journey state in the same checkpoint
 ```
 
 Checklist and fee handling are Knowledge/RAG transformations, not Action Agent
-capabilities. Action supports `service_center_lookup`, `check_slots`, and
-`book_slot`.
+capabilities. Action supports `service_center_lookup`, `check_slots`,
+`book_slot`, and `journey_summary`. Broad goals use `service_journey` on the
+Knowledge branch but do not invoke RAG.
 
 ## Important Files
 
 - `main.py`: multi-turn CLI loop, `InMemorySaver`, UUID thread ID, optional
   first-turn uploads, source display, and `exit`/`quit` handling.
 - `backend/graph/graph.py`: contextual continuation, nodes, and routing.
-- `backend/graph/state.py`: `PakAssistState` and `SourceRef`.
+- `backend/graph/state.py`: `PakAssistState`, `SourceRef`, and
+  `JourneyProgress`.
 - `backend/agents/planner.py`: validated `intent`, `service_type`, and
   `next_step` classification.
 - `backend/agents/knowledge.py`: retrieval orchestration, response-mode
@@ -64,11 +75,13 @@ capabilities. Action supports `service_center_lookup`, `check_slots`, and
 - `backend/services/service_centers.py`: JSON-backed location matching.
 - `backend/services/appointment_simulator.py`: deterministic schedule lookup,
   time normalization, booking validation, and demo references.
+- `backend/services/journey.py`: service-specific progress initialization,
+  updates, broad-goal orientation, request detection, and summary formatting.
 - `data/appointment_slots.json`: immutable demo seed, not live government
   availability or trusted KB content.
 - `knowledge_base/`: trusted Markdown and service-center JSON datasets.
-- `tests/`: Planner, RAG, Action, session, checklist, fee, and appointment
-  coverage.
+- `tests/`: Planner, RAG, Action, session, checklist, fee, appointment,
+  journey, and context-precedence coverage.
 
 There is no `backend/main.py`; the entry point is root `main.py`.
 
@@ -89,9 +102,14 @@ There is no `backend/main.py`; the entry point is root `main.py`.
 - `selected_office: Optional[str]`
 - `appointment_date: Optional[str]`
 - `booked_slots: Optional[List[str]]`
+- `journeys: Dict[str, JourneyProgress]`
 
 `SourceRef` contains `label`, `origin`, `service`, `section`, `source_url`, and
 `confidence`.
+
+`JourneyProgress` is `TypedDict(total=False)` with `requirements`, `fees`,
+`service_center`, and `appointment`. Current values are `reviewed`, `located`,
+`selected`, `availability_checked`, or `demo_booked` where applicable.
 
 ## Session Behavior
 
@@ -104,10 +122,20 @@ Supported contextual continuation is intentionally narrow:
 - a service-center request missing location records `pending_clarification`
   and `pending_request`; the next location answer resumes that Action request;
 - a fee follow-up whose Planner output lacks a service can inherit a known
-  `service_type` from the same thread and route to Knowledge.
+  `service_type` from the same thread and route to Knowledge; checklist
+  follow-ups use the same safe inheritance;
 - an appointment can reuse service context, perform location clarification,
   retain ordered office choices, accept a name/index/ordinal selection, check
-  demo slots, and reject a slot already booked in the same thread.
+  demo slots, and reject a slot already booked in the same thread;
+- broad apply/get/renew goals establish an empty service journey and return a
+  supported-flow orientation; progress queries reuse the active service.
+
+Explicit current-turn service/location information outranks retained context.
+Fresh searches replace stale office options and invalidate incompatible
+selection/appointment context. Without an override, dependent turns may reuse
+the selected office or active options. Numeric, explicit-name, and simple
+ordinal references are range-checked and never fall back after an invalid
+selection.
 
 There is no general message-history reasoning or generic clarification-resume
 system.
@@ -140,8 +168,8 @@ system.
 ## Action and Dataset Rules
 
 - Keep Action dispatch separate from service/data logic.
-- Action supports `service_center_lookup`, `check_slots`, and `book_slot`;
-  checklist and fee modes do not belong in Action.
+- Action supports `service_center_lookup`, `check_slots`, `book_slot`, and
+  `journey_summary`; checklist and fee modes do not belong in Action.
 - Use the existing passport and driving-license JSON datasets without scraping
   or an external location API.
 - Never invent missing office fields or substitute another city.
@@ -153,6 +181,12 @@ system.
   live availability. Never imply that a real government booking occurred.
 - Bookings belong in checkpointed `booked_slots`; do not mutate the seed JSON
   or introduce global cross-session booking state.
+- Journey progress tracks assistance, never verified submission, payment,
+  office visits, application status, or real appointments.
+- Update progress only after the capability's success condition. Keep passport
+  and driving-license entries separate in `journeys`.
+- Current-turn service/location information overrides stale options and
+  selections; invalid office references must not reuse an older selection.
 
 ## Completed Milestones
 
@@ -165,29 +199,38 @@ system.
 7. Multi-Turn Conversational Session Flow.
 8. Grounded Checklist Builder and Fee Lookup.
 9. Appointment Simulator and multi-turn appointment workflow.
+10. Citizen Journey / Progress Tracking.
 
-The current completed milestone is **Milestone 9: Appointment Simulator**.
+Post-Milestone 10 routing/session polish includes broad service-goal handling,
+context-aware checklist/fee follow-ups, stale office/location invalidation, and
+strict office reference validation.
+
+The current completed milestone is **Milestone 10: Citizen Journey / Progress
+Tracking**.
 
 ## Current Limitations
 
 - Appointment availability and booking are simulated from a small local seed;
   there is no live government integration or real reservation.
 - Demo bookings are process/thread-local and disappear with the session.
+- Journey state is also process/thread-local and represents assistance only,
+  not verified government completion.
 - Sessions and checkpoints are process-local only.
 - Context reuse covers pending location, office selection, appointment flow,
-  and service-ambiguous fee follow-ups, not arbitrary conversation.
+  service-ambiguous checklist/fee follow-ups, and progress summaries, not
+  arbitrary conversation or general coreference.
 - Generic Clarification responses do not all support structured continuation.
 - Driving-license fee data is not reliable enough for numeric answers.
 - Driving-license service-center data is incomplete.
-- No GPS/maps, progress tracking, API, frontend, production upload UI,
+- No GPS/maps, API, frontend, production upload UI,
   database, authentication, voice, or broad localization layer exists.
 
-## Next Planned Milestone
+## Future Work
 
-**Journey/Progress Tracking and Orchestration Refinement**
-
-RAG latency profiling and optimization is also a technical improvement area,
-not a completed capability.
+No later agent/backend milestone is established in this context. RAG latency
+profiling and optimization remains a technical improvement area. API/FastAPI
+work is being reviewed separately and is intentionally not part of this
+documented architecture snapshot.
 
 ## Development Rules
 
