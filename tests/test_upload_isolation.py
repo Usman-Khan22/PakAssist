@@ -4,8 +4,9 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
+from langgraph.checkpoint.memory import InMemorySaver
 
-from backend.agents.knowledge import knowledge_agent
+from backend.agents.knowledge import UPLOAD_REQUIRED_MESSAGE, knowledge_agent
 from backend.agents.planner import PlannerOutput
 from backend.graph.graph import build_graph
 from backend.rag.loader import RagDocument
@@ -223,14 +224,144 @@ def test_upload_inspection_routes_to_knowledge(
     assert mock_knowledge.call_args.kwargs["thread_id"] == "upload-routing"
 
 
+@pytest.mark.parametrize(
+    "query",
+    [
+        "What information is visible in this uploaded image?",
+        "Explain this uploaded document.",
+        "What does this government notice say?",
+        "What information can you extract from this image?",
+    ],
+)
+@patch("backend.rag.retriever.embed_texts", side_effect=_vectors)
+def test_generic_upload_inspection_uses_upload_without_service(_embed, query):
+    retriever = Retriever(FaissVectorStore())
+    visible_text = "PUBLIC NOTICE TEST-NOTICE-48291 Office closed on Friday"
+    with (
+        patch(
+            "backend.graph.graph.run_planner",
+            return_value=PlannerOutput(
+                intent="unknown", service_type="unknown", next_step="clarify"
+            ),
+        ),
+        patch("backend.agents.knowledge._get_retriever", return_value=retriever),
+        patch(
+            "backend.agents.knowledge._extract_uploaded_files",
+            return_value=[_upload_document(visible_text)],
+        ),
+        patch("backend.agents.knowledge._call_gemini", return_value=visible_text),
+    ):
+        result = build_graph().invoke(
+            {"user_input": query, "uploaded_files": ["dummy.png"]},
+            config={"configurable": {"thread_id": f"generic-{query}"}},
+        )
+
+    assert result["intent"] == "inspect_upload"
+    assert result["service_type"] == "unknown"
+    assert result["next_step"] == "knowledge"
+    assert "TEST-NOTICE-48291" in result["response"]
+    assert any(source["origin"] == "user_upload" for source in result["sources"])
+
+
 @patch("backend.graph.graph.run_planner")
-def test_upload_inspection_without_service_still_clarifies(mock_planner):
+@patch("backend.agents.knowledge._get_retriever")
+def test_generic_upload_request_without_upload_asks_for_document(
+    get_retriever, mock_planner
+):
     mock_planner.return_value = PlannerOutput(
-        intent="unknown", service_type="unknown", next_step="clarify"
+        intent="inspect_upload", service_type="unknown", next_step="knowledge"
     )
+    get_retriever.return_value.retrieve.return_value = []
+
     result = build_graph().invoke(
-        {"user_input": "Tell me what is visible in this image."},
-        config={"configurable": {"thread_id": "missing-service"}},
+        {"user_input": "What information is visible in this uploaded image?"},
+        config={"configurable": {"thread_id": "no-upload"}},
+    )
+
+    assert result["response"] == UPLOAD_REQUIRED_MESSAGE
+    assert result["sources"] == []
+
+
+@patch("backend.rag.retriever.embed_texts", side_effect=_vectors)
+def test_generic_upload_context_is_available_on_same_thread_follow_up(_embed):
+    retriever = Retriever(FaissVectorStore())
+    planner_results = [
+        PlannerOutput(intent="unknown", service_type="unknown", next_step="clarify"),
+        PlannerOutput(
+            intent="inspect_upload", service_type="unknown", next_step="knowledge"
+        ),
+    ]
+    with (
+        patch("backend.graph.graph.run_planner", side_effect=planner_results),
+        patch("backend.agents.knowledge._get_retriever", return_value=retriever),
+        patch(
+            "backend.agents.knowledge._extract_uploaded_files",
+            return_value=[
+                _upload_document("PUBLIC NOTICE from the Transport Department")
+            ],
+        ),
+        patch(
+            "backend.agents.knowledge._call_gemini",
+            side_effect=["It is a public notice.", "The Transport Department."],
+        ),
+    ):
+        graph = build_graph(checkpointer=InMemorySaver())
+        config = {"configurable": {"thread_id": "generic-follow-up"}}
+        graph.invoke(
+            {
+                "user_input": "What does this notice say?",
+                "uploaded_files": ["dummy.png"],
+            },
+            config=config,
+        )
+        follow_up = graph.invoke(
+            {
+                "user_input": "Which department is it from?",
+                "uploaded_files": None,
+            },
+            config=config,
+        )
+
+    assert follow_up["response"] == "The Transport Department."
+    assert any(source["origin"] == "user_upload" for source in follow_up["sources"])
+
+
+@pytest.mark.parametrize(
+    ("query", "planner_output"),
+    [
+        (
+            "What documents do I need?",
+            PlannerOutput(
+                intent="requirements_checklist",
+                service_type="unknown",
+                next_step="knowledge",
+            ),
+        ),
+        (
+            "What is the fee?",
+            PlannerOutput(
+                intent="fee_lookup", service_type="unknown", next_step="knowledge"
+            ),
+        ),
+        (
+            "Find the nearest office.",
+            PlannerOutput(
+                intent="service_center_lookup",
+                service_type="unknown",
+                next_step="action",
+            ),
+        ),
+    ],
+)
+@patch("backend.graph.graph.run_planner")
+def test_service_specific_requests_without_service_still_clarify(
+    mock_planner, query, planner_output
+):
+    mock_planner.return_value = planner_output
+
+    result = build_graph().invoke(
+        {"user_input": query},
+        config={"configurable": {"thread_id": "service-required"}},
     )
 
     assert result["response"] == "Please clarify which government service you need."

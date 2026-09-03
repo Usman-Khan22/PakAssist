@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Literal
 
 from backend.graph.state import JourneyProgress, PakAssistState
+from backend.services.language import message
 
 
 JourneyStep = Literal["requirements", "fees", "service_center", "appointment"]
@@ -52,11 +53,10 @@ def initialize_journey(state: PakAssistState) -> dict[str, JourneyProgress]:
 
 def journey_orientation(state: PakAssistState) -> str:
     service = state.get("service_type", "service").replace("_", " ")
-    return (
-        f"I can guide you through the {service} process, including required "
-        "documents, trusted fee information, service centers, and demo appointment "
-        "booking. A good place to start is the required documents. Would you like "
-        "to see them?"
+    return message(
+        "journey_orientation",
+        state.get("preferred_language", "english"),
+        service=service,
     )
 
 
@@ -82,35 +82,38 @@ def update_journey(
 
 def journey_summary(state: PakAssistState) -> str:
     service = state.get("service_type", "unknown")
+    language = state.get("preferred_language", "english")
     if service in {"", "unknown"}:
-        return "Which government service should I show progress for?"
+        return message("journey_service_needed", language)
 
     progress = (state.get("journeys") or {}).get(service, {})
     labels = {
         "requirements": {
-            "reviewed": "✓ Requirements reviewed",
-            None: "○ Requirements not reviewed yet",
+            "reviewed": message("journey_requirements_done", language),
+            None: message("journey_requirements_pending", language),
         },
         "fees": {
-            "reviewed": "✓ Fee information reviewed",
-            None: "○ Fee information not reviewed yet",
+            "reviewed": message("journey_fees_done", language),
+            None: message("journey_fees_pending", language),
         },
         "service_center": {
-            "located": "✓ Service centers located",
-            "selected": "✓ Service center selected",
-            None: "○ Service center not located yet",
+            "located": message("journey_center_located", language),
+            "selected": message("journey_center_selected", language),
+            None: message("journey_center_pending", language),
         },
         "appointment": {
-            "availability_checked": "◐ Demo appointment availability checked; not booked",
-            "demo_booked": "✓ Demo appointment booked",
-            None: "○ Demo appointment not booked yet",
+            "availability_checked": message("journey_slots_checked", language),
+            "demo_booked": message("journey_booking_done", language),
+            None: message("journey_booking_pending", language),
         },
     }
-    lines = [f"{service.replace('_', ' ').title()} assistance journey"]
+    lines = [
+        message(
+            "journey_title", language, service=service.replace("_", " ").title()
+        )
+    ]
     for step in ("requirements", "fees", "service_center", "appointment"):
         status = progress.get(step)
         lines.append(labels[step].get(status, labels[step][None]))
-    lines.append(
-        "This tracks assistance provided by PakAssist, not verified government completion."
-    )
+    lines.append(message("journey_disclaimer", language))
     return "\n".join(lines)
