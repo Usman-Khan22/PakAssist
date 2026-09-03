@@ -14,6 +14,7 @@ the trusted knowledge base versus the user's own files.
 """
 
 import os
+from threading import RLock
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
@@ -34,26 +35,36 @@ class RetrievedChunk:
 class Retriever:
     def __init__(self, kb_store: FaissVectorStore):
         self.kb_store = kb_store
-        self.user_store: Optional[FaissVectorStore] = None  # built lazily, per session
+        self.upload_stores: Dict[str, FaissVectorStore] = {}
+        self._upload_lock = RLock()
 
     @classmethod
     def from_index_dir(cls, index_dir: str) -> "Retriever":
         return cls(kb_store=FaissVectorStore.load(index_dir))
 
-    def add_user_content(self, documents: List[RagDocument]) -> None:
-        """Embed and index user-uploaded content for this session only."""
+    @staticmethod
+    def _valid_thread_id(thread_id: Optional[str]) -> str:
+        if not isinstance(thread_id, str) or not thread_id.strip():
+            raise ValueError("A valid thread_id is required for user-upload content.")
+        return thread_id
+
+    def add_user_content(
+        self, documents: List[RagDocument], *, thread_id: Optional[str]
+    ) -> None:
+        """Embed and index user-uploaded content for one process-local thread."""
         if not documents:
             return
-        if self.user_store is None:
-            self.user_store = FaissVectorStore()
+        thread_id = self._valid_thread_id(thread_id)
 
         chunks = chunk_documents(documents)
         vectors = embed_texts([c.text for c in chunks])
-        self.user_store.add(
-            vectors=vectors,
-            texts=[c.text for c in chunks],
-            metadatas=[c.metadata for c in chunks],
-        )
+        with self._upload_lock:
+            store = self.upload_stores.setdefault(thread_id, FaissVectorStore())
+            store.add(
+                vectors=vectors,
+                texts=[c.text for c in chunks],
+                metadatas=[c.metadata for c in chunks],
+            )
 
     def retrieve(
         self,
@@ -61,26 +72,47 @@ class Retriever:
         top_k: Optional[int] = None,
         include_user_files: bool = True,
         min_score: Optional[float] = None,
+        thread_id: Optional[str] = None,
+        prefer_user_files: bool = False,
     ) -> List[RetrievedChunk]:
         top_k = top_k or int(os.getenv("RAG_TOP_K", "5"))
         min_score = min_score if min_score is not None else float(os.getenv("RAG_MIN_SCORE", "0.15"))
 
         query_vector = embed_texts([query])[0]
 
-        raw_results = list(self.kb_store.search(query_vector, k=top_k))
-        if include_user_files and self.user_store is not None:
-            raw_results += self.user_store.search(query_vector, k=top_k)
+        official_raw = list(self.kb_store.search(query_vector, k=top_k))
+        upload_raw = []
+        if include_user_files and thread_id:
+            with self._upload_lock:
+                upload_store = self.upload_stores.get(thread_id)
+                if upload_store is not None:
+                    upload_raw = list(upload_store.search(query_vector, k=top_k))
 
-        results = [
+        official_results = [
             RetrievedChunk(
                 text=text,
                 metadata=meta,
                 score=score,
-                origin="user_upload" if meta.get("document_type", "").startswith("user_") else "knowledge_base",
+                origin="knowledge_base",
             )
-            for score, text, meta in raw_results
+            for score, text, meta in official_raw
+            if score >= min_score
+        ]
+        upload_results = [
+            RetrievedChunk(
+                text=text,
+                metadata=meta,
+                score=score,
+                origin="user_upload",
+            )
+            for score, text, meta in upload_raw
             if score >= min_score
         ]
 
+        results = official_results + upload_results
         results.sort(key=lambda r: r.score, reverse=True)
+        if prefer_user_files and upload_results and top_k > 0:
+            reserved = max(upload_results, key=lambda result: result.score)
+            remaining = [result for result in results if result is not reserved]
+            return [reserved, *remaining[: top_k - 1]]
         return results[:top_k]
