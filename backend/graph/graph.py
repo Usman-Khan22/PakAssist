@@ -1,8 +1,9 @@
 """LangGraph workflow for PakAssist."""
 from langgraph.graph import StateGraph, START, END
+from langchain_core.runnables import RunnableConfig
 
 from backend.agents.action import action_agent
-from backend.agents.knowledge import knowledge_agent
+from backend.agents.knowledge import is_upload_inspection_request, knowledge_agent
 from backend.agents.planner import run_planner
 from backend.graph.state import PakAssistState
 from backend.services.fee_lookup import is_fee_request
@@ -74,6 +75,16 @@ def _planner_node(state: PakAssistState) -> dict:
 
     result = run_planner(state["user_input"], context=_planner_context(state))
     previous_service = state.get("service_type")
+    if (
+        result.intent == "unknown"
+        and result.service_type != "unknown"
+        and is_upload_inspection_request(state["user_input"])
+    ):
+        return {
+            "intent": "inspect_upload",
+            "service_type": result.service_type,
+            "next_step": "knowledge",
+        }
     if is_service_journey_goal(result.intent) and (
         result.next_step == "action"
         or result.intent in {"service_journey", "start_service_journey"}
@@ -132,7 +143,7 @@ def _planner_node(state: PakAssistState) -> dict:
     }
 
 
-def _knowledge_node(state: PakAssistState) -> dict:
+def _knowledge_node(state: PakAssistState, config: RunnableConfig) -> dict:
     """Executes the Multimodal RAG Knowledge Agent."""
     if state.get("intent") == "service_journey":
         return {
@@ -140,7 +151,8 @@ def _knowledge_node(state: PakAssistState) -> dict:
             "sources": [],
             "journeys": initialize_journey(state),
         }
-    return knowledge_agent(state)
+    thread_id = config.get("configurable", {}).get("thread_id")
+    return knowledge_agent(state, thread_id=thread_id)
 
 
 def _action_node(state: PakAssistState) -> dict:
