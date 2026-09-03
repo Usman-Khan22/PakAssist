@@ -1,0 +1,1442 @@
+[
+  {
+    "region": "Islamabad",
+    "office_name": "Islamabad Headquarter",
+    "address": "DGIP Headquarter, G-8/1 Mauve Area, Islamabad.",
+    "phone": "051-111-344-777",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Islamabad",
+    "office_name": "Islamabad G-10",
+    "address": "Regional Passport Office, 13-C, Al-Hussain Plaza, G-10 Markaz, Islamabad.",
+    "phone": "051-9239308",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Islamabad",
+    "office_name": "Islamabad EPO",
+    "address": "Passport Office, plot 19-a ground floor, Pak Plaza, Fazal-e-haq road Blue Area, Islamabad.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Islamabad",
+    "office_name": "Islamabad OPF (For Overseas)",
+    "address": "OPF Head Office Building, 2 Shahrah-e-Jamhuriat, G-5, Islamabad.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Lahore-I (Garden Town)",
+    "address": "4-A, Sher Shah Block, Behind Barkat Market Near Himayat-ul-Islam Girls College, New Garden Town, Lahore.",
+    "phone": "042-9201836",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Lahore-II (Shadman)",
+    "address": "8-A, Shahrah-e-Aewan Tijarat, Shadman, Lahore",
+    "phone": "042-9201997-9201916",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Lahore-III (Raiwind)",
+    "address": "14-kilometer, Main Raiwind Road, Araiyan Morr, Lahore.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "EPO Lahore (Defence)",
+    "address": "27-xx phase 3, DHA, Khayaban e Iqbal Road, Lahore.",
+    "phone": "042-99264396",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Lahore (Shahdrah)",
+    "address": "Saeed Park, near Ravi Toll Plaza, Shahdara, Lahore.",
+    "phone": "042-37921900",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Lahore (Punjab Bar Council)",
+    "address": "Lahore High Court Bar Association.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Lahore Chamber of Commerce (LCCI)",
+    "address": "Passport Counter at Lahore Chamber of Commerce and Industry 11-A, Shara-e-Aiwan-e-Sanat-o-Tijarat, Lahore.",
+    "phone": "042-99264396",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Rawalpindi",
+    "address": "Opposite Station High School No.3, Gunjmandi More, Railway Workshop Road, (Near Bakery Chowk).",
+    "phone": "051-9237253",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "EPO Rawalpindi",
+    "address": "Near Rehman Abad, Murree Road, Rawalpindi.",
+    "phone": "051-9251111786100",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Kahuta",
+    "address": "near TMA Office Kallar Chowk, Opposite Sammi CNG Station, Rawalpindi Road, Kahuta",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "GujarKhan",
+    "address": "NBP Plaza, Near Railway underpass, Gujar Khan.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Jehlum",
+    "address": "Al-Madina Center, Old GT Road, near Civil Hospital, Jehlum.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Pind Dadan Khan",
+    "address": "Mandhar Plaza, Near AC Office, Main Jhelum Road, Pind Dadan Khan.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Attock",
+    "address": "Hunt Hall Near Session Court Chowk, Adjacent to NADRA Office, Civil Lines, Attock City.",
+    "phone": "057-9316211",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Chakwal",
+    "address": "Flat # 10-11, 1st Floor Zila Council Plaza, Tehsil Chowk, Chakwal.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Gujrat",
+    "address": "near Deona Mandi, G.T. Road, Gujrat.",
+    "phone": "053-3706270",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "EPO Gujrat",
+    "address": "Near Services Industries Morr Opposite Falak Marriage Hall, Gujrat.",
+    "phone": "053-3706270",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Mandi-Bahauddin",
+    "address": "Opposite District Complex, Phalia Road, Mandi-Bahauddin.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Gujranwala",
+    "address": "Bukhari Road, Civil Lines, Near Railway Station, Gujranwala.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "EPO Gujranwala",
+    "address": "Executive Passport Office, Near FBR Regional Office, G.T Road, Gujranwala.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "EPO Sialkot",
+    "address": "Haji Pura Rd, opposite Gulzar Book Depot, Muslim Colony Sialkot, Punjab, Pakistan.",
+    "phone": "0523-240140",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Sialkot",
+    "address": "Zeeshan Housing Complex, Kashmir Road, Sialkot.",
+    "phone": "052-3540844",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Kubay Chak (Sialkot)",
+    "address": "Kubay Chak, Sialkot.",
+    "phone": "0524-350224",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Faisalabad",
+    "address": "Jail Road, opposite Allied Hospital, adjacent to WASA, Faisalabad.",
+    "phone": "041-9210129",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Jaranwala",
+    "address": "238 Nankana Sahib Rd near Sabzi Mandi, Jaranwala.",
+    "phone": "041-4318891",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "EPO Faisalabad",
+    "address": "Fazal Plaza behind Kohinoor Plaza, 1 Jaranwala Road, Faisalabad.",
+    "phone": "041-9330415",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Sargodha",
+    "address": "Masood Zaidi Road, Opposite LOGIX College, Sargodha.",
+    "phone": "048-9230667",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "EPO Sargodha",
+    "address": "M.M Alam Road, near Sher Zaman Town, Toheed Plaza, Sargodha.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Bhalwal (Sargodha)",
+    "address": "Sargodha Gujrat Road, near Bismillah CNG Station, Bhalwal, Sargodha.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Sahiwal",
+    "address": "520/C, Jail Road, Sahiwal.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "EPO Sahiwal",
+    "address": "Gulistan Road, Near Ali Masjid, Sahiwal.",
+    "phone": "040-9200565",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Jhang",
+    "address": "Canal Road, Ghaziabad, Jhang Saddar, Jhang.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Hafizabad",
+    "address": "Jami House, Mohulla Gari Awan, Sarkari Parao, Hafizabad.",
+    "phone": "054-75228588",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Okara",
+    "address": "Depalpur Road, Madina Block, Near Mahi Marriage Hall, Okara.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Kasur",
+    "address": "H No. 58-A, Club Road, Abdul Shakoor Khan Colony, Kasur.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Chiniot",
+    "address": "House #11/1, W-Block, Satellite Town, Chiniot.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Narowal",
+    "address": "Regional Passport Office, Old District Hospital, near Old Kacheri, Narowal.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Sheikhupura",
+    "address": "Regional Passport Office, Shami road, Sheikhupura.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Nankana Sahib",
+    "address": "Main Magtanwal Road near PTCL Exchange, Nankana Sahib.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Khushab",
+    "address": "near Municipal Committee, near Malik Shakir Bashir Awan MNA house Civil line, Khushab.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Toba Tek Singh",
+    "address": "near Zila Council, near Nadra Office, Toba Tek Singh.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Multan",
+    "address": "Near Madni Chowk, Passport Office Road, near Alfalah Market, U-Block, New Multan Colony, Multan.",
+    "phone": "061-9220088",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Multan (Jalalpur Pirwala)",
+    "address": "Shuja Abad Road, Opposite Govt. Special Education School, Multan.",
+    "phone": "061-4210066",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Multan (Qadirpur Rawan)",
+    "address": "Near National Bank of Pakistan, Main Khanewal Road, Tehsil Qadirpur Rawan, Multan.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "EPO Multan",
+    "address": "Third Floor, Chen One Tower, Abdali Road, Multan.",
+    "phone": "061-9200069",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Khanewal",
+    "address": "House No. 20-A, Civil Lines Khanewal.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Jehanian (Khanewal)",
+    "address": "near Jehanian Industries, near Khanewal Road Bypass, Jahanian, Khanewal.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Bahawalpur",
+    "address": "Building # 9-A, Sawaar Muhammad Hussain Road, Model Town A, Bahawalpur.",
+    "phone": "0621-9255362",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "D.G.Khan",
+    "address": "near D.G Khan Medical College, D.G Khan.",
+    "phone": "0641-9260308",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Taunsa Shareef",
+    "address": "near Post office and City Courts, Kachehri Road, Taunsa Shareef.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "RahimYarKhan",
+    "address": "Bank Sadiq Canal Branch, Allama Iqbal Town, near Zarai Taraqiyati Bank, Canal Road, RahimYarKhan.",
+    "phone": "068-9230433",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Muzaffargarh",
+    "address": "Talairy By-Pass, near Alflah Bank, Multan Road, Muzaffargarh.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Bahawalnagar",
+    "address": "House # 8, Bublana street, East Jail Road, Hussainabad, Bahawalnagar.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Vehari",
+    "address": "House # 128, Southern Block, Sharki Colony, near Cotton Research Center, Vehari.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Mianwali",
+    "address": "near Jahaz Chowk, Jail Road, Opposite Police Line Gate, Mianwali.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Layyah",
+    "address": "House No. 08, Block I, Canal View Colony, College Road, Layyah City.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Bhakkar",
+    "address": "near Piala Chowk, near PSO Pump and Ali Hospital Road, Mandi Town, Bhakkar.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Pakpattan",
+    "address": "Regional Passport Office, 5-S, Green Town, Pakpattan.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Rajanpur",
+    "address": "Opposite Income Tax Office, Lari Adda, Rajanpur.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Lodhran",
+    "address": "Hawayli Arraiyan Road, Ward # 5, Tehsil & District Lodhran.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Punjab",
+    "office_name": "Kot Addu",
+    "address": "near Irrigation Colony, Layyah Kot Addu Road, Kot Addu.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Peshawar",
+    "address": "Phase-5, near North West Hospital, Hayatabad, Peshawar.",
+    "phone": "091-9217616-7",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "EPO Peshawar",
+    "address": "Nadra Mega Centre Tambowanu Mor opposite Runway, next to Rasheed Motor, Peshawar.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Kohat",
+    "address": "DHQ Hospital Road, Gate#2, Phase II, KDA Township, Kohat.",
+    "phone": "0922-9260342",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "D.I.Khan",
+    "address": "Near Agriculture Research Center, Main Bannu Road, D.I.Khan.",
+    "phone": "0966-9280219",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Swat (Saidu Sharif)",
+    "address": "Kanju Township, Swat.",
+    "phone": "0946-818205",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Abbottabad",
+    "address": "House No. 878, Near PC Hotel, Mansehra Road, Abbottabad.",
+    "phone": "0992-385672",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Bannu",
+    "address": "Miranshah Road, Bannu Cantt.",
+    "phone": "0928-9270112",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Mardan",
+    "address": "near College Chowk, Opposite DIG House, Nowshera Mardan Road, Mardan.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Timergara (Lower Dir)",
+    "address": "Near Shaheed Chowk, near By-pass Road, Timergarah.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Buner (Daggar)",
+    "address": "Near Sultana General Hospital, Buner.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Hangu",
+    "address": "Building No. 554/BA, Mohallah Farooq Abad, Opposite Al-Malik CNG, Kohat Road, District Hangu.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Battagram",
+    "address": "Khasra No:1006, Ground Floor Adjacent to NADRA Office Election Office opposite Attock Petrol Pump, Battagram.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Haripur",
+    "address": "Near Excise and Taxation Office, Awan Colony, Tehsil Road, Haripur.",
+    "phone": "0929-9561224",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Batkhela (Malakand)",
+    "address": "Near District Courts, Batkhela.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Upper Dir",
+    "address": "College Colony, Near Govt. Degree College, Upper Dir.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Tank",
+    "address": "EllahiAbad, Near Town Hall Police Check Post, Tank D.I Khan Road, Tehsil & District Tank.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Chitral",
+    "address": "Galogh, Mohallah Danin, Chitral.",
+    "phone": "0943-413690",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Alpuri Shangila",
+    "address": "College Road, Opposite UBL & District Court, Alpuri Shangila.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Swabi",
+    "address": "Hajji Mastan Khan Plaza, Near HBL Bank Jehangira Road, Swabi.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Charsadda",
+    "address": "Tangi Road, Charssada.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Naushera",
+    "address": "Al-Jamil Plaza, G.T. Road, Nowshera.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Karak",
+    "address": "Major Ihsan House, near National Bank of Pakistan, Saddam Chowk, Karak.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Mansehra",
+    "address": "Opposite Income Tax Office, Lari Adda, Mansehra.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Laki Marwat",
+    "address": "Nazim Town, Main Adda, Tehsil & District Laki Marwat.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Torghar",
+    "address": "Regional Passport Office, Torghar.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Kpk",
+    "office_name": "Dassu",
+    "address": "Regional Passport Office, N-35, Komila, Dassu (Kohistan).",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Karachi-I (South)",
+    "address": "Shahrah-e-Iraq, near Mosque, adjacent to National Bank, Saddar, Karachi.",
+    "phone": "021-9203092-3",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Karachi-II (Central)",
+    "address": "(address not listed in official PDF extract)",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Karachi-III (West)",
+    "address": "(address not listed in official PDF extract)",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Karachi-IV (East)",
+    "address": "(address not listed in official PDF extract)",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Karachi-V (Awami Markaz)",
+    "address": "1st Floor, EOBI House, Ex (Awami Markaz), Sharah-e-Faisal, Karachi.",
+    "phone": "021-9203091",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "EPO Karachi",
+    "address": "behind South City Hospital, adjacent to ATC court building, near Karachi Beach Residency ground floor, commercial plot # 2/5 Clifton 3, Karachi.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Sukkar",
+    "address": "House No. C-628, Mules Road, Near Local Board, Passport Office Road, Sukkur.",
+    "phone": "071-5625453",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Hyderabad",
+    "address": "Plot No. S-3, Sindh Industrial Trading Estate Area, Passport Office Road, Hyderabad.",
+    "phone": "0223-883864",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Larkana",
+    "address": "Central Jail Road, opposite Industrial Labour Colony, SITE Area, Larkana.",
+    "phone": "074-4058013-4",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Shaheed Benazir Abad",
+    "address": "House no. 1-A, Sachal Sarmast Colony (Housing Society) Adjacent Society Colony, Shaheed Benazir Abad.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Khairpur",
+    "address": "Regional Passport Office, National Bank Kachehri road near TCS office, Khairpur.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Dadu",
+    "address": "1016/63A, Qureshi Street, near Sindh Medical Centre, Jagatabad, Dadu.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Jacobabad",
+    "address": "House no 24 & 25, near Grid Station Sahafai Colony, near Stadium Road, Jacobabad.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Sanghar",
+    "address": "near Police line Gate #01, Mirpurkhas road, Sanghar.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Badin",
+    "address": "Plot No. 57 & 58, Near Medical Center, Main Hyderabad Road, Badin.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Thatta",
+    "address": "near DC Office & District Accounts Office, Thatta",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Malir",
+    "address": "near Nehal Hospital, Kala Board Begum Khurshid Road, Malir, Karachi.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Mirpur Khas",
+    "address": "House No. B-1, Railway Co-operative Society, Hyderabad Road, Mirpurkhas.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Jamshoro",
+    "address": "Bangla No. A-202, Sindh University Employees Co-operative Housing Society, Phase-I, Jamshoro.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Noshero Feroze",
+    "address": "Regional Passport Office, Sindh Colony, MA Jinnah Road, Near DCO Complex, Noshero Feroze.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Qambar Shahdad Kot",
+    "address": "Survey no 592, opposite Session Court, Main Qamber Road, Qamber Shahdadkot.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Matiari",
+    "address": "Regional Passport Office, Main Bypass Road, Matiari.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Tando Muhammad Khan",
+    "address": "Opposite Indus Medical College, Near D.C Complex, Tando Muhammad Khan.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Kashmore",
+    "address": "Mohalla Mirzapur opposite D.O Education Office, IBA University Road, Kandh Kot, Kashmore.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Shikar Pur",
+    "address": "HMB TOWER 1st FLOOR, Hathidar Road, District Shikarpur.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Tando Allahyar",
+    "address": "Gulshan e Mehran colony, Naser pur road, Tando Allah Yar.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Mirpur Mathelo",
+    "address": "Regional Passport Office near Deputy Commissioner Office N-5, Mirpur Mathelo.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Umer Kot",
+    "address": "Regional Passport Office, near Golimar ground, Umer Kot.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Mithi Tharparkar",
+    "address": "Regional Passport Office, near Airport Office Mithi, Naukot Mithi Road, Mithi Tharparkar.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Sajawal",
+    "address": "Near Benazir Income Support Office, Boys High School Road, Sajawal",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Sindh",
+    "office_name": "Navy Karsaz",
+    "address": "Karsaz Faisal Cantonment, Karachi.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Quetta",
+    "address": "Arbab Barkat Ali Road, Near Railway Football Ground, Quetta.",
+    "phone": "081-9201762",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "EPO Quetta",
+    "address": "Plot No. 30, main Commercial Area, Jinnah Town, Quetta.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Zhob",
+    "address": "House # A/78, near Wapda Office, Cantonment, Zhob.",
+    "phone": "0822-412696",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Gawadar",
+    "address": "TTC Colony Ward, Gawadar.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Kech (Turbat)",
+    "address": "Makran Plaza, Infront of NADRA Office, Turbat.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Khuzdar",
+    "address": "Divisional Secretariate Commissioner Office, Qallat Division.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Dera Allah Yar (Jaffarabad)",
+    "address": "House No. 353, near Ustad Muhammad Chowk, Irrigation Colony, Quetta Road, Dera Allah Yar.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Qilla Saifullah",
+    "address": "Near Deputy Commissioner Office, Qilla Saifullah.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Sibbi",
+    "address": "Bangla no. 1883/B Ziarat Colony, Near Qalma Chowk, Jail Road, Sibbi.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Kharan",
+    "address": "Girls College Road, Near DC Office, Kharaan",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Qilla Abdullah",
+    "address": "Chamman, opposite D.C Office Mall Road, Talka Chamman, Qilla Abdullah.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Pishin",
+    "address": "Babu Mohallah, Salahuddin Plaza Qazi Housing Scheme Band Road, Pishin.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Loralai",
+    "address": "Pathan Kot Road, near to Jargah Hall, Loralai.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Ziarat",
+    "address": "Al Naseeb House behind Shalimar Hotel Baldia Road, Ziarat.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Noshki",
+    "address": "Main Market Road, Opposite PTCL Exchange Near Frontier Constabulary Office, Noshki.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Panjgur",
+    "address": "Municipal Building, Near Quetta Bus Station & Football Stadium Panjgur.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Jhal Magsi",
+    "address": "near Election Commission Office, Gandhawa, District Jhal Magsi.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Nasirabad",
+    "address": "near Shahzad Umrani House, near Gola Chaok, Dera Murad Jamali, District Nasirabad.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Barkhan",
+    "address": "near DC Complex, Kohlu Road, Barkhan.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Musa Khel Bazar",
+    "address": "near DC Office, Musakhel.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Harnai",
+    "address": "Mohalla Jalal Abad, near Nadra Office, Harnai.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Dalbandin",
+    "address": "Town Gali, Hindu Muhalla, near Iqbal Hotel, Dalbandin, Chaghi.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Kalat",
+    "address": "Shaheed Norouz Ahmadzai street, near Nadra Office, near Alizai Market, Kalat.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Dhadar",
+    "address": "near Rind Ali Dhader Bazar, opposite District Education Office, Quetta Road, Dhadar.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Mastung",
+    "address": "Aziz Abad No. 2, Jahangir Shaheed Road, Near Alfalah Masjid, Link Quetta Road, Mastung.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Awaran",
+    "address": "near DC Office, Awaran.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Kohlu",
+    "address": "Kohlu.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Lasbela",
+    "address": "Shareef Colony, Uthal, Lasbela.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Washuk",
+    "address": "near DC Office, Washuk.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Sherani",
+    "address": "Sherani.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Dera Bugti",
+    "address": "Near Old Jamia Masjid, Near Bugti House, Dera Bugti.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Balochistan",
+    "office_name": "Sohbatpur",
+    "address": "Regional Passport Office, DC road opposite SP Office, Sohbatpur.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Gilgit Baltistan",
+    "office_name": "Skardu",
+    "address": "Near Shell Pump, Krasmathang Olding Road, Skardu.",
+    "phone": "05815-920109",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Gilgit Baltistan",
+    "office_name": "Gilgit",
+    "address": "Muhalla Qazilbash, Near Yadgar Chowk, Khomar, Gilgit.",
+    "phone": "05811-920338",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Gilgit Baltistan",
+    "office_name": "Chillas",
+    "address": "District Diamir, Khasra No. 426 Harpan, Chillas.",
+    "phone": "05812-920216",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Gilgit Baltistan",
+    "office_name": "Hunza",
+    "address": "Main KKH. Ganish, Hunza.",
+    "phone": "05813-920338",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Gilgit Baltistan",
+    "office_name": "Astore",
+    "address": "Passport Office, near Polo Ground, Eidgah, Astore.",
+    "phone": "05817-920194",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Gilgit Baltistan",
+    "office_name": "Ghanche",
+    "address": "Regional Passport Office near PTDC Khaplu, Ghanche.",
+    "phone": "05816-920320",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Gilgit Baltistan",
+    "office_name": "Ghizer",
+    "address": "Regional Passport Office, Main Bazar Gahkuch, Ghizer.",
+    "phone": "05814-921634",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Gilgit Baltistan",
+    "office_name": "Nagar",
+    "address": "Jaffarabad Nagar 2, Gilgit Baltistan.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Gilgit Baltistan",
+    "office_name": "Shigar",
+    "address": "near National Bank, Fort Road, Shigar, Gilgit Baltistan.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Azad Jammu And Kashmir",
+    "office_name": "Muzaffarabad",
+    "address": "Mir Plaza Bela Noor Shah, near Bus Stand, Abbottabad Road, Muzaffarabad.",
+    "phone": "05810-6279293",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Azad Jammu And Kashmir",
+    "office_name": "Mirpur",
+    "address": "near Bhutto park, near PC Hotel, Mirpur.",
+    "phone": "05861-042133",
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Azad Jammu And Kashmir",
+    "office_name": "Kotli",
+    "address": "Near DC Office, G & A Plaza, Pindi Road, Kotli.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Azad Jammu And Kashmir",
+    "office_name": "Rawalakot",
+    "address": "near Baldia Chowk Bus Stand, Link Road Hajeera By-Pass, Dist. Poonch, Rawalakot.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Azad Jammu And Kashmir",
+    "office_name": "Bagh (Arja)",
+    "address": "Arja, near Arja Road, District Bagh.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Azad Jammu And Kashmir",
+    "office_name": "Hattian",
+    "address": "Near NADRA Office, Kanda Bala, Tehsil & District, Hattian Bala.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Azad Jammu And Kashmir",
+    "office_name": "Neelam",
+    "address": "Main Bazar, Post Office Near HBL Bank, Athmuqam, Neelam.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Azad Jammu And Kashmir",
+    "office_name": "Sudhnoti",
+    "address": "District Council, Sudhnoti.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Azad Jammu And Kashmir",
+    "office_name": "Bhimber",
+    "address": "Regional Passport Office, Castodion building Kacheri, District Courts Road, Bhimber.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Azad Jammu And Kashmir",
+    "office_name": "Haveli",
+    "address": "Bypass Road, forward Kahutta, near AJK Bank, Haveli.",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Fata",
+    "office_name": "Ghalanay (Mohmand Agency)",
+    "address": "Ghalanay (Mohmand Agency)",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Fata",
+    "office_name": "Parachinar (Kurram Agency)",
+    "address": "Parachinar (Kurram Agency)",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Fata",
+    "office_name": "Lower Sadda",
+    "address": "Sadda (Kurram Agency)",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Fata",
+    "office_name": "Wana",
+    "address": "Wana (South Waziristan)",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Fata",
+    "office_name": "Orakzai Agency",
+    "address": "Orakzai Agency",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Fata",
+    "office_name": "Khar",
+    "address": "Khar (Bajaur Agency)",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  },
+  {
+    "region": "Fata",
+    "office_name": "Miran shah",
+    "address": "Miranshah (North Waziristan)",
+    "phone": null,
+    "service": "Passport (Regional/Executive Passport Office)",
+    "source": "https://dgip.gov.pk/downloads/PassportOfficesListNew.pdf"
+  }
+]
