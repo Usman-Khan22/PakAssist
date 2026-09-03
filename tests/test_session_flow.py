@@ -6,7 +6,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from backend.agents.planner import PlannerOutput
 from backend.graph.graph import build_graph
-from main import run_cli
+from backend.main import run_cli
 
 
 def _session_config(thread_id: str) -> dict:
