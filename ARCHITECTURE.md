@@ -11,9 +11,10 @@ implemented capabilities are:
 - grounded requirements checklists and verified fee lookup inside the
   Knowledge path;
 - an Action Agent with dataset-backed service-center lookup and deterministic
-  appointment simulation; and
+  appointment simulation;
+- service-specific Citizen Journey / Progress Tracking; and
 - short-lived conversational state for location, office selection, contextual
-  fee follow-ups, and simulated bookings.
+  knowledge follow-ups, simulated bookings, and assistance progress.
 
 There is no HTTP API, frontend, database, authentication, long-term memory,
 live government appointment integration, map integration, or voice interface.
@@ -32,8 +33,8 @@ Conditional Router
     |
     |-- Knowledge
     |      |
-    |      v
-    |   Knowledge Agent
+    |      |-- Broad service goal -> Journey orientation
+    |      `-- Knowledge Agent
     |      |
     |      v
     |   Multimodal RAG
@@ -50,9 +51,15 @@ Conditional Router
     |   Action Agent
     |      |-- Service Center Lookup -> static office JSON datasets
     |      |-- Check Slots -> Appointment Simulator -> demo seed JSON
-    |      `-- Book Slot -> Appointment Simulator -> session-local bookings
+    |      |-- Book Slot -> Appointment Simulator -> session-local bookings
+    |      `-- Journey Summary -> per-service journey state
     |
     `-- Clarification
+
+Successful grounded/deterministic assistance
+    |
+    v
+Per-service Citizen Journey state in the same checkpoint
 ```
 
 Each graph invocation still reaches `END`, but the CLI invokes the same
@@ -62,7 +69,7 @@ merges state between turns in that thread.
 Checklist Builder and Fee Lookup are not Action Agent capabilities. They are
 specialized grounded response modes selected by the Knowledge Agent after RAG
 retrieval. The Action Agent is a separate dispatch layer supporting
-`service_center_lookup`, `check_slots`, and `book_slot`.
+`service_center_lookup`, `check_slots`, `book_slot`, and `journey_summary`.
 
 ## Multi-Turn CLI and Session Lifecycle
 
@@ -95,12 +102,22 @@ The current session logic intentionally supports these narrow cases:
    an unknown service, the planner graph node may reuse a known, non-unknown
    `service_type` from the same checkpointed thread and route to Knowledge as
    `fee_lookup`.
+   Requirements/checklist follow-ups use the same safe service inheritance.
 3. **Appointment office selection.** Multiple center matches are retained in
    `office_options` with `pending_clarification="office"`. A later office name,
    numeric choice, or simple ordinal resolves the selection.
 4. **Simulated booking flow.** The selected office, configured demo date, and
    booked slot keys survive across turns in the same thread. This enables slot
    checking, booking, and duplicate-booking prevention within the session.
+5. **Journey continuation.** Broad goals establish an empty service journey,
+   successful assistance updates it, and progress questions can reuse the
+   active service when the new turn omits it.
+
+Current-turn information has precedence over checkpointed context. An explicit
+new service or location triggers a fresh lookup and replaces incompatible
+`office_options`, `selected_office`, and appointment context. Retained options
+are reused only for dependent turns such as `Show appointments for the first
+one`.
 
 This is not general conversational intent resolution. Generic clarification
 answers and arbitrary follow-ups are not reconstructed from full message
@@ -126,10 +143,16 @@ history.
 | `selected_office` | Office selected for the simulated appointment workflow |
 | `appointment_date` | Configured demo date for the selected office |
 | `booked_slots` | Session-local simulator slot keys already booked in this thread |
+| `journeys` | Per-service mapping from journey step to assistance status |
 
 `SourceRef` contains `label`, `origin`, `service`, `section`, `source_url`, and
 `confidence`. Knowledge and Action both use this existing source contract; no
 second citation mechanism exists.
+
+`JourneyProgress` is `TypedDict(total=False)` with `requirements`, `fees`,
+`service_center`, and `appointment` string fields. The observed statuses are
+`reviewed`, `located`, `selected`, `availability_checked`, and `demo_booked`,
+as appropriate to each step.
 
 ## Planner and Conditional Routing
 
@@ -138,13 +161,15 @@ native structured output with Pydantic `PlannerOutput`:
 
 - `intent`: a short snake-case goal, including established values such as
   `service_center_lookup`, `check_slots`, `book_slot`,
-  `requirements_checklist`, and `fee_lookup`;
+  `requirements_checklist`, `fee_lookup`, `service_journey`, and
+  `journey_summary`;
 - `service_type`: normally `passport`, `driving_license`, or `unknown`; and
 - `next_step`: `knowledge`, `action`, `appointment`, or `clarify`.
 
 The prompt directs requirements/checklist and fee/cost questions to Knowledge;
 service-center, simulated slot-check, and simulated booking requests to Action;
-and ambiguous requests to Clarification.
+progress summaries to Action; broad apply/get/renew goals to the Knowledge
+branch as `service_journey`; and ambiguous requests to Clarification.
 English, Urdu, and Roman Urdu are accepted at prompt level, but there is no
 complete localization subsystem.
 
@@ -160,6 +185,13 @@ normalizes routing to Action and may inherit a known service from the current
 session. `next_step="appointment"` remains a reserved Planner value; there is
 no separate appointment graph node because the simulator is an Action
 capability.
+
+Broad `apply_for_service`/`renew_service` outputs that were classified as
+Action are normalized to `service_journey` and Knowledge. The Knowledge graph
+node returns a short supported-capabilities orientation and initializes the
+service journey without calling RAG or advancing progress. This does not submit
+an application. Progress requests are normalized to `journey_summary` and use
+the Action Agent's deterministic summary dispatch.
 
 The Planner node also implements the contextual continuation rules above.
 It does not replace the Planner with a separate memory agent.
@@ -231,6 +263,10 @@ For a checklist request, the Knowledge Agent:
 4. formats supported items as an actionable `☐` list; and
 5. builds `sources` from those same selected chunks.
 
+Only a nonempty generated checklist backed by selected trusted requirement
+chunks records `requirements="reviewed"` for the current service journey.
+Retrieval/selection failures do not advance it.
+
 Adult/minor, conditional, renewal, and province-specific distinctions are
 preserved when present in context. Uncertainty must remain visible. If no
 trusted required-document section is retrieved, the builder returns a
@@ -255,6 +291,10 @@ For a fee request, the Knowledge Agent:
    than selecting or collapsing one amount; and
 5. builds `sources` from the selected fee chunks.
 
+Only a nonempty answer generated from reliable fee chunks records
+`fees="reviewed"`. Missing or unverified fee information does not advance the
+journey.
+
 The current passport KB contains high-confidence official fee tables with MRP,
 Fast Track, e-Passport, validity/page/urgency distinctions, surcharges, and a
 warning to re-confirm current values. The driving-license KB explicitly marks
@@ -267,8 +307,9 @@ skipped.
 ## Action Agent, Service Center Lookup, and Appointment Simulator
 
 `backend/agents/action.py` selects and dispatches `service_center_lookup`,
-`check_slots`, and `book_slot`. Unsupported Action requests receive a safe
-unsupported-action response. Checklist and fee requests do not use this agent.
+`check_slots`, `book_slot`, and `journey_summary`. Unsupported Action requests
+receive a safe unsupported-action response. Checklist and fee requests do not
+use this agent.
 
 `backend/services/service_centers.py` separately reads:
 
@@ -284,6 +325,10 @@ the shared `sources` field.
 There is no scraping, external location API, GPS, coordinate, distance, or map
 calculation. Missing driving-license cities such as Lahore reflect incomplete
 dataset coverage and must never be replaced with a different city's office.
+
+A successful center lookup records `service_center="located"`, or `"selected"`
+when only one office is returned. Failed and unsupported lookups do not advance
+progress.
 
 ### Deterministic appointment simulation
 
@@ -304,6 +349,37 @@ Appointment responses label results as simulated, direct users to official
 systems for real appointments, and return an empty `sources` list because demo
 slot data is not trusted government evidence.
 
+Office selection accepts an explicit active office name, numeric selection,
+or simple ordinal from first/`1st` through tenth/`10th`. References are checked
+against the current `office_options`; an out-of-range selection returns a
+bounded clarification and never falls back to an older selection. An explicit
+new location is resolved before retained context, replacing stale options and
+clearing `selected_office`/`appointment_date` when multiple new matches exist.
+
+Successful slot checking records `appointment="availability_checked"`, which
+is distinct from a booking. Only a simulator result with status `booked`
+records `appointment="demo_booked"`.
+
+## Citizen Journey / Progress Tracking
+
+`backend/services/journey.py` provides the lightweight journey model and its
+operations. `journeys` is keyed by service, so passport and driving-license
+assistance does not contaminate the other service. Updates copy the mapping and
+change one supported step; the LangGraph checkpointer then retains that mapping
+for later turns in the same thread.
+
+Broad service goals initialize an empty mapping for the active service and
+return an orientation toward documents, fees, centers, and demo appointments.
+They do not mark a step complete. `Show my progress`, `What have we done`, and
+`What's left`-style requests are recognized by intent or a small phrase set and
+formatted by `journey_summary()` through the Action route. Missing steps are
+shown as not reviewed/located/booked; availability checking is shown as an
+intermediate demo status.
+
+This is assistance progress only. It never proves that documents were
+submitted, fees were paid, an office was visited, an application was filed, or
+a real government appointment was booked.
+
 ## Testing
 
 The test suite mocks external Gemini calls where appropriate and covers:
@@ -321,8 +397,13 @@ The test suite mocks external Gemini calls where appropriate and covers:
 - ordinary Knowledge responses remaining unformatted;
 - contextual fee follow-up using the checkpointed service;
 - appointment office selection, slot discovery, booking, invalid slots, and
-  duplicate-booking prevention; and
-- regression coverage for existing routes after appointment integration.
+  duplicate-booking prevention;
+- regression coverage for existing routes after appointment integration;
+- per-service journey initialization and updates;
+- progress summaries, incomplete steps, and session isolation;
+- broad service-goal orientation and contextual checklist/fee continuation;
+- current-turn location/service precedence and stale-office invalidation; and
+- valid, out-of-range, and replacement office references.
 
 ## Current Limitations and Planned Work
 
@@ -337,13 +418,12 @@ The following are not implemented:
 - reliable driving-license fee amounts;
 - complete driving-license service-center coverage;
 - GPS/map-based nearest-office calculation;
-- journey/progress tracking;
 - HTTP API, frontend, or production upload UI;
 - database, authentication, or multi-user storage;
 - voice integration;
 - broader Urdu/regional-language polish; and
 - additional services beyond passport and driving license.
 
-The next planned milestone is **Journey/Progress Tracking and Orchestration
-Refinement**. RAG latency profiling and optimization is also a technical
-improvement area, not a completed capability.
+Journey/progress tracking is implemented through Milestone 10. No later
+agent/backend milestone is established here. RAG latency profiling and
+optimization remains a technical improvement area.
