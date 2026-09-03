@@ -44,6 +44,29 @@ NO_CONTEXT_MESSAGE = (
     "I couldn't find reliable information for this request in the current "
     "knowledge base."
 )
+UPLOAD_SESSION_MESSAGE = (
+    "I couldn't access the uploaded content because this request has no valid "
+    "session context."
+)
+
+_UPLOAD_MARKERS = ("upload", "uploaded")
+_UPLOAD_REFERENCES = (
+    "this image",
+    "this document",
+    "this file",
+    "this pdf",
+    "this photo",
+    "this screenshot",
+)
+_UPLOAD_INSPECTION_TERMS = (
+    "visible",
+    "read",
+    "information",
+    "explain",
+    "tell me",
+    "what does",
+    "what is in",
+)
 
 _GENERATION_SYSTEM_PROMPT = """You are PakAssist's Knowledge answer generator.
 
@@ -178,7 +201,20 @@ def _call_gemini(
     return (response.text or "").strip()
 
 
-def knowledge_agent(state: PakAssistState) -> PakAssistState:
+def is_upload_inspection_request(query: str) -> bool:
+    """Identify requests to interpret user-provided image/document content."""
+    text = query.casefold()
+    has_upload_reference = any(marker in text for marker in _UPLOAD_MARKERS) or any(
+        reference in text for reference in _UPLOAD_REFERENCES
+    )
+    return has_upload_reference and any(
+        term in text for term in _UPLOAD_INSPECTION_TERMS
+    )
+
+
+def knowledge_agent(
+    state: PakAssistState, *, thread_id: str | None = None
+) -> PakAssistState:
     """Entry point — wire this in as the real "knowledge" node in graph.py."""
     query = state.get("user_input", "").strip()
     if not query:
@@ -186,11 +222,21 @@ def knowledge_agent(state: PakAssistState) -> PakAssistState:
         state["sources"] = []
         return state
 
+    uploaded_files = state.get("uploaded_files") or []
+    upload_inspection = is_upload_inspection_request(query)
+    if (uploaded_files or upload_inspection) and (
+        not isinstance(thread_id, str) or not thread_id.strip()
+    ):
+        state["response"] = UPLOAD_SESSION_MESSAGE
+        state["sources"] = []
+        return state
+
     retriever = _get_retriever()
 
-    uploaded_files = state.get("uploaded_files") or []
     if uploaded_files:
-        retriever.add_user_content(_extract_uploaded_files(uploaded_files))
+        retriever.add_user_content(
+            _extract_uploaded_files(uploaded_files), thread_id=thread_id
+        )
 
     intent = state.get("intent", "")
     service_type = state.get("service_type", "")
@@ -206,7 +252,17 @@ def knowledge_agent(state: PakAssistState) -> PakAssistState:
         retrieval_query = fee_retrieval_query(service_type, query)
         top_k = 20
 
-    chunks = retriever.retrieve(retrieval_query, top_k=top_k)
+    trusted_mode = checklist_mode or fee_mode
+    chunks = retriever.retrieve(
+        retrieval_query,
+        top_k=top_k,
+        include_user_files=not trusted_mode,
+        thread_id=thread_id,
+        prefer_user_files=(
+            not trusted_mode
+            and (bool(uploaded_files) or upload_inspection)
+        ),
+    )
 
     if not chunks:
         state["response"] = NO_CONTEXT_MESSAGE

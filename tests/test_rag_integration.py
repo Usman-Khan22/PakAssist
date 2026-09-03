@@ -162,7 +162,10 @@ def test_4_image_handling_flow(mock_knowledge_gemini, mock_extract_image, mock_p
         "sources": [],
     }
 
-    result = app_graph.invoke(initial_state)
+    result = app_graph.invoke(
+        initial_state,
+        config={"configurable": {"thread_id": "image-upload-session"}},
+    )
 
     assert result["response"] == "Your token number is 48291 expiring next month."
     assert any(s["origin"] == "user_upload" for s in result["sources"])
@@ -200,7 +203,10 @@ def test_5_pdf_handling_flow(mock_knowledge_gemini, mock_planner, app_graph, tmp
         "sources": [],
     }
 
-    result = app_graph.invoke(initial_state)
+    result = app_graph.invoke(
+        initial_state,
+        config={"configurable": {"thread_id": "pdf-upload-session"}},
+    )
 
     assert result["response"] == "Urgent delivery takes 3 working days."
     assert any(s["origin"] == "user_upload" for s in result["sources"])

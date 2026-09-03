@@ -64,6 +64,8 @@ invent or guess a specific service.
     Broad goals such as applying for, getting, or renewing a supported service
     are journey guidance, not executable actions. Use intent "service_journey"
     and next_step "knowledge".
+    Requests to inspect, read, explain, or describe information visible in an
+    uploaded image/document also use "knowledge". Use intent "inspect_upload".
   - "action"      - the user wants a supported executable operation, such as
     locating a service center/office. For a service-center lookup, use intent
     "service_center_lookup". For prototype appointment availability, use intent
