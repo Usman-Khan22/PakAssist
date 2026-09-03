@@ -1,1 +1,0 @@
-"""PakAssist Multimodal RAG subsystem."""

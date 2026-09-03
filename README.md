@@ -1,74 +1,96 @@
 # PakAssist
 
-PakAssist is an agentic AI assistant that helps Pakistani citizens understand and
-navigate government and public services (e.g. driving licenses, passports,
-appointments, and document requirements). The project is being built
-incrementally, feature by feature.
+PakAssist is a React and TypeScript civic-tech guide for navigating common Pakistani government services. It presents service requirements, documents, fees, timelines, and next steps in a clear interface with English and Urdu support.
 
-## Current Stage
+PakAssist is an independent guide, not a government portal. Users should verify final requirements, fees, and application details on the relevant official `.gov.pk` website.
 
-This stage sets up the backend foundation only:
+## Features
 
-- A `PakAssistState` shared state definition used by LangGraph.
-- A minimal LangGraph graph with a single placeholder node, to confirm the
-  graph compiles and runs correctly.
-- A simple command-line entry point (`backend/main.py`) for testing the
-  foundation.
+- Home page with service search, popular government directories, process guidance, and official gateway links
+- Searchable government services directory with category filters
+- Detail pages with eligibility checklists, required documents, fees, timelines, process steps, and related services
+- Mock PakAssist chat experience with follow-up prompts
+- Mock dashboard showing applications, appointments, and quick actions
+- English and Urdu language switching
+- Responsive desktop and mobile layouts
+- Lucide icons and React Router navigation
 
-No agents, RAG, document processing, appointment booking, or frontend
-functionality have been implemented yet — those will be added in later
-stages on top of this foundation.
+## Technology
+
+- React
+- TypeScript
+- Vite
+- React Router
+- Lucide React
+- CSS
+
+## Requirements
+
+- Node.js 18 or newer
+- npm
+
+## Getting Started
+
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Start the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+3. Open the local URL shown by Vite, usually `http://localhost:5173`.
+
+## Available Scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the Vite development server |
+| `npm run build` | Run TypeScript checks and create a production build |
+| `npm run preview` | Preview the production build locally |
+
+## Routes
+
+| Path | Page |
+| --- | --- |
+| `/` | Home |
+| `/services` | Government services directory |
+| `/services/:slug` | Service detail page |
+| `/chat` | PakAssist chat |
+| `/dashboard` | User dashboard |
+| `/how-it-works` | How PakAssist works |
+| `/about` | About PakAssist |
 
 ## Project Structure
 
-```
-PakAssist/
-│
-├── backend/
-│   ├── main.py              # Application entry point
-│   ├── agents/               # Future home for agent implementations
-│   └── graph/
-│       ├── state.py          # Shared LangGraph state
-│       └── graph.py          # LangGraph graph construction
-│
-├── frontend/                 # Future frontend (not implemented yet)
-├── requirements.txt
-└── README.md
-```
-
-## Setup
-
-1. Create and activate a virtual environment:
-
-   ```bash
-   python -m venv venv
-   source venv/bin/activate   # On Windows: venv\Scripts\activate
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Create a `.env` file in the project root for any environment variables
-   (e.g. API keys) you'll need as the project grows. None are required yet
-   at this stage.
-
-## Running
-
-From the project root:
-
-```bash
-python -m backend.main
+```text
+.
+├── index.html
+├── package.json
+├── package-lock.json
+├── vite.config.ts
+├── tsconfig.json
+├── tsconfig.app.json
+├── tsconfig.node.json
+└── src
+    ├── App.tsx              # Routes and page components
+    ├── data.ts              # Service catalog and service types
+    ├── language.ts          # English/Urdu language handling
+    ├── main.tsx             # React application entry point
+    ├── styles.css           # Global responsive styles
+    ├── vite-env.d.ts        # Vite type declarations
+    └── services
+        └── api.ts           # Local mock service helpers
 ```
 
-You'll be prompted for input in the terminal. The input is passed through
-the LangGraph graph and the resulting state is printed back — this confirms
-the backend foundation is wired correctly.
+## Data and Integrations
 
-## Roadmap
+The current application uses local mock data. The functions in `src/services/api.ts` are prepared as a simple boundary for replacing mock service, chat, and dashboard behavior with a real backend later.
 
-Future stages will add: a planner agent, intent/service routing, document
-understanding, RAG over official government sources, Urdu/regional language
-and voice interaction, checklists, and action-based workflows.
+## Disclaimer
+
+Information shown by PakAssist is for guidance only. Always confirm current requirements and complete applications through official government channels.
