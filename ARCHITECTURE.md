@@ -10,12 +10,13 @@ implemented capabilities are:
 - grounded multimodal RAG over trusted knowledge and ephemeral uploads;
 - grounded requirements checklists and verified fee lookup inside the
   Knowledge path;
-- an Action Agent with dataset-backed service-center lookup; and
-- short-lived conversational state for location clarification and contextual
-  fee follow-ups.
+- an Action Agent with dataset-backed service-center lookup and deterministic
+  appointment simulation; and
+- short-lived conversational state for location, office selection, contextual
+  fee follow-ups, and simulated bookings.
 
 There is no HTTP API, frontend, database, authentication, long-term memory,
-appointment workflow, map integration, or voice interface.
+live government appointment integration, map integration, or voice interface.
 
 ## Current Architecture
 
@@ -46,7 +47,10 @@ Conditional Router
     |-- Action
     |      |
     |      v
-    |   Action Agent -> Service Center Lookup -> JSON datasets
+    |   Action Agent
+    |      |-- Service Center Lookup -> static office JSON datasets
+    |      |-- Check Slots -> Appointment Simulator -> demo seed JSON
+    |      `-- Book Slot -> Appointment Simulator -> session-local bookings
     |
     `-- Clarification
 ```
@@ -57,8 +61,8 @@ merges state between turns in that thread.
 
 Checklist Builder and Fee Lookup are not Action Agent capabilities. They are
 specialized grounded response modes selected by the Knowledge Agent after RAG
-retrieval. The Action Agent remains a separate dispatch layer whose only
-implemented action is `service_center_lookup`.
+retrieval. The Action Agent is a separate dispatch layer supporting
+`service_center_lookup`, `check_slots`, and `book_slot`.
 
 ## Multi-Turn CLI and Session Lifecycle
 
@@ -80,7 +84,7 @@ A different thread ID does not inherit a previous thread's pending state.
 
 ### Supported contextual continuation
 
-The current session logic intentionally supports two narrow cases:
+The current session logic intentionally supports these narrow cases:
 
 1. **Missing service-center location.** When Action lookup needs a location,
    it stores `pending_clarification="location"` and the original query. A reply
@@ -91,6 +95,12 @@ The current session logic intentionally supports two narrow cases:
    an unknown service, the planner graph node may reuse a known, non-unknown
    `service_type` from the same checkpointed thread and route to Knowledge as
    `fee_lookup`.
+3. **Appointment office selection.** Multiple center matches are retained in
+   `office_options` with `pending_clarification="office"`. A later office name,
+   numeric choice, or simple ordinal resolves the selection.
+4. **Simulated booking flow.** The selected office, configured demo date, and
+   booked slot keys survive across turns in the same thread. This enables slot
+   checking, booking, and duplicate-booking prevention within the session.
 
 This is not general conversational intent resolution. Generic clarification
 answers and arbitrary follow-ups are not reconstructed from full message
@@ -110,8 +120,12 @@ history.
 | `response` | User-facing downstream response |
 | `uploaded_files` | Optional list of image/PDF paths for Knowledge retrieval |
 | `sources` | Optional trusted knowledge, upload, or service-center references |
-| `pending_clarification` | Missing datum for supported continuation; currently `location` |
-| `pending_request` | Original request retained while location is pending |
+| `pending_clarification` | Missing datum for supported continuation: `location` or `office` |
+| `pending_request` | Original request retained while location or office selection is pending |
+| `office_options` | Ordered office names offered for appointment selection |
+| `selected_office` | Office selected for the simulated appointment workflow |
+| `appointment_date` | Configured demo date for the selected office |
+| `booked_slots` | Session-local simulator slot keys already booked in this thread |
 
 `SourceRef` contains `label`, `origin`, `service`, `section`, `source_url`, and
 `confidence`. Knowledge and Action both use this existing source contract; no
@@ -123,12 +137,14 @@ second citation mechanism exists.
 native structured output with Pydantic `PlannerOutput`:
 
 - `intent`: a short snake-case goal, including established values such as
-  `service_center_lookup`, `requirements_checklist`, and `fee_lookup`;
+  `service_center_lookup`, `check_slots`, `book_slot`,
+  `requirements_checklist`, and `fee_lookup`;
 - `service_type`: normally `passport`, `driving_license`, or `unknown`; and
 - `next_step`: `knowledge`, `action`, `appointment`, or `clarify`.
 
-The prompt directs requirements/checklist and fee/cost questions to Knowledge,
-service-center requests to Action, and ambiguous requests to Clarification.
+The prompt directs requirements/checklist and fee/cost questions to Knowledge;
+service-center, simulated slot-check, and simulated booking requests to Action;
+and ambiguous requests to Clarification.
 English, Urdu, and Roman Urdu are accepted at prompt level, but there is no
 complete localization subsystem.
 
@@ -137,10 +153,15 @@ complete localization subsystem.
 - unknown intent or service -> Clarification;
 - known `next_step="knowledge"` -> Knowledge Agent;
 - known `next_step="action"` -> Action Agent; and
-- all other values, including `appointment`, -> Clarification because no
-  appointment node exists yet.
+- all other values -> Clarification.
 
-The Planner node also implements the two contextual continuation rules above.
+For exact `check_slots` and `book_slot` intents, the Planner graph node
+normalizes routing to Action and may inherit a known service from the current
+session. `next_step="appointment"` remains a reserved Planner value; there is
+no separate appointment graph node because the simulator is an Action
+capability.
+
+The Planner node also implements the contextual continuation rules above.
 It does not replace the Planner with a separate memory agent.
 
 ### Gemini structured-output constraint
@@ -243,10 +264,10 @@ than quoting those ranges. When matching but unreliable fee context exists,
 its source may still be shown to explain the limitation; Gemini generation is
 skipped.
 
-## Action Agent and Service Center Lookup
+## Action Agent, Service Center Lookup, and Appointment Simulator
 
-`backend/agents/action.py` selects and dispatches actions. Its only implemented
-action is `service_center_lookup`; unsupported Action requests receive a safe
+`backend/agents/action.py` selects and dispatches `service_center_lookup`,
+`check_slots`, and `book_slot`. Unsupported Action requests receive a safe
 unsupported-action response. Checklist and fee requests do not use this agent.
 
 `backend/services/service_centers.py` separately reads:
@@ -264,6 +285,25 @@ There is no scraping, external location API, GPS, coordinate, distance, or map
 calculation. Missing driving-license cities such as Lahore reflect incomplete
 dataset coverage and must never be replaced with a different city's office.
 
+### Deterministic appointment simulation
+
+`backend/services/appointment_simulator.py` owns appointment schedule and
+booking rules, separate from Action dispatch. It reads immutable demo schedules
+from `data/appointment_slots.json`, matches exact service/office pairs,
+normalizes common requested times to `HH:MM`, filters session-booked slots, and
+creates deterministic `DEMO-...` references for successful simulations.
+
+The workflow reuses Service Center Lookup for location and office discovery.
+One match is selected automatically; multiple matches prompt for an office;
+missing location uses the existing continuation. Unsupported offices, missing
+times, absent slots, and duplicate bookings produce safe deterministic results.
+
+This is explicitly a prototype: it does not call a government system, scrape
+live availability, create a real reservation, or mutate the seed JSON.
+Appointment responses label results as simulated, direct users to official
+systems for real appointments, and return an empty `sources` list because demo
+slot data is not trusted government evidence.
+
 ## Testing
 
 The test suite mocks external Gemini calls where appropriate and covers:
@@ -278,14 +318,19 @@ The test suite mocks external Gemini calls where appropriate and covers:
 - grounded passport and driving-license checklists;
 - high-confidence passport fee handling;
 - refusal to generate from unverified driving-license fees;
-- ordinary Knowledge responses remaining unformatted; and
-- contextual fee follow-up using the checkpointed service.
+- ordinary Knowledge responses remaining unformatted;
+- contextual fee follow-up using the checkpointed service;
+- appointment office selection, slot discovery, booking, invalid slots, and
+  duplicate-booking prevention; and
+- regression coverage for existing routes after appointment integration.
 
 ## Current Limitations and Planned Work
 
 The following are not implemented:
 
-- appointment node, slot checking, or appointment booking simulator;
+- live appointment availability or real government booking integration;
+- appointment schedules beyond the small deterministic demo seed;
+- persistent simulated bookings across process restarts or between users;
 - persistent sessions across process restarts or database-backed memory;
 - broad conversational history and general follow-up intent resolution;
 - generic continuation for every Clarification response;
@@ -299,6 +344,6 @@ The following are not implemented:
 - broader Urdu/regional-language polish; and
 - additional services beyond passport and driving license.
 
-The next planned milestone is **Appointment Simulator / Appointment
-Workflow**, including an explicit appointment graph path and only the slot or
-booking behavior approved for that milestone.
+The next planned milestone is **Journey/Progress Tracking and Orchestration
+Refinement**. RAG latency profiling and optimization is also a technical
+improvement area, not a completed capability.

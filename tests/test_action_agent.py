@@ -83,7 +83,8 @@ def test_existing_clarification_route_is_preserved():
 
 
 def test_non_lookup_action_is_reported_as_unsupported():
-    result = _invoke("I want to apply now", "passport", intent="apply_for_service")
+    result = _invoke(
+        "Submit my application now", "passport", intent="submit_application"
+    )
 
     assert "not supported yet" in result["response"]
-

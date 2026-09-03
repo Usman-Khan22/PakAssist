@@ -6,15 +6,65 @@ from backend.agents.knowledge import knowledge_agent
 from backend.agents.planner import run_planner
 from backend.graph.state import PakAssistState
 from backend.services.fee_lookup import is_fee_request
+from backend.services.checklist_builder import is_checklist_request
+from backend.services.journey import (
+    initialize_journey,
+    is_journey_request,
+    is_service_journey_goal,
+    journey_orientation,
+)
+
+
+def _planner_context(state: PakAssistState) -> dict:
+    """Expose only useful short-lived state to the Planner."""
+    context = {}
+    for field in (
+        "service_type",
+        "intent",
+        "selected_office",
+        "office_options",
+        "appointment_date",
+        "pending_clarification",
+    ):
+        value = state.get(field)
+        if value and value != "unknown":
+            context[field] = value
+    journeys = state.get("journeys") or {}
+    if journeys:
+        context["journey_services"] = list(journeys)
+    return context
+
+
+def _contextual_appointment_intent(state: PakAssistState) -> str | None:
+    """Recognize generic appointment follow-ups if planning is inconclusive."""
+    query = state["user_input"].casefold().strip(" .?!")
+    if "book" in query and ("slot" in query or "appointment" in query):
+        return "book_slot"
+    if "appointment" in query or "available slot" in query or "show slots" in query:
+        return "check_slots"
+    ordinal_answers = {
+        "first", "1st", "second", "2nd", "third", "3rd",
+        "fourth", "4th", "fifth", "5th",
+        "sixth", "6th", "seventh", "7th", "eighth", "8th",
+        "ninth", "9th", "tenth", "10th",
+    }
+    if state.get("office_options") and (
+        query.isdigit() or any(word in query.split() for word in ordinal_answers)
+    ):
+        return "check_slots"
+    return None
 
 
 def _planner_node(state: PakAssistState) -> dict:
     """Runs the Planner Agent and returns only the fields it owns."""
-    if state.get("pending_clarification") == "location":
-        original_request = (state.get("pending_request") or "").rstrip(" ?.!")
-        location = state.get("user_input", "").strip()
+    pending = state.get("pending_clarification")
+    if pending in {"location", "office"}:
+        user_input = state.get("user_input", "").strip()
+        if pending == "location":
+            original_request = (state.get("pending_request") or "").rstrip(" ?.!")
+            user_input = f"{original_request} in {user_input}"
         return {
-            "user_input": f"{original_request} in {location}",
+            "user_input": user_input,
             "intent": state["intent"],
             "service_type": state["service_type"],
             "next_step": "action",
@@ -22,15 +72,56 @@ def _planner_node(state: PakAssistState) -> dict:
             "pending_request": None,
         }
 
-    result = run_planner(state["user_input"])
+    result = run_planner(state["user_input"], context=_planner_context(state))
     previous_service = state.get("service_type")
+    if is_service_journey_goal(result.intent) and (
+        result.next_step == "action"
+        or result.intent in {"service_journey", "start_service_journey"}
+    ):
+        return {
+            "intent": "service_journey",
+            "service_type": result.service_type,
+            "next_step": "knowledge",
+        }
+    if is_journey_request(result.intent, state["user_input"]):
+        return {
+            "intent": "journey_summary",
+            "service_type": (
+                previous_service
+                if result.service_type == "unknown"
+                and previous_service not in {None, "", "unknown"}
+                else result.service_type
+            ),
+            "next_step": "action",
+        }
+    fallback_intent = _contextual_appointment_intent(state)
+    appointment_intent = (
+        result.intent
+        if result.intent in {"check_slots", "book_slot"}
+        else fallback_intent if result.intent == "unknown" else None
+    )
+    if appointment_intent:
+        return {
+            "intent": appointment_intent,
+            "service_type": (
+                previous_service
+                if result.service_type == "unknown"
+                and previous_service not in {None, "", "unknown"}
+                else result.service_type
+            ),
+            "next_step": "action",
+        }
     if (
         result.service_type == "unknown"
         and previous_service not in {None, "", "unknown"}
-        and is_fee_request(result.intent, state["user_input"])
+        and (
+            is_fee_request(result.intent, state["user_input"])
+            or is_checklist_request(result.intent, state["user_input"])
+        )
     ):
+        checklist_request = is_checklist_request(result.intent, state["user_input"])
         return {
-            "intent": "fee_lookup",
+            "intent": "requirements_checklist" if checklist_request else "fee_lookup",
             "service_type": previous_service,
             "next_step": "knowledge",
         }
@@ -43,6 +134,12 @@ def _planner_node(state: PakAssistState) -> dict:
 
 def _knowledge_node(state: PakAssistState) -> dict:
     """Executes the Multimodal RAG Knowledge Agent."""
+    if state.get("intent") == "service_journey":
+        return {
+            "response": journey_orientation(state),
+            "sources": [],
+            "journeys": initialize_journey(state),
+        }
     return knowledge_agent(state)
 
 

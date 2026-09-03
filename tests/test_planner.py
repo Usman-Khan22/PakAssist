@@ -75,6 +75,28 @@ def test_ambiguous_request(mock_get_client):
     assert result.next_step == "clarify"
 
 
+@patch("backend.agents.planner._get_client")
+def test_planner_receives_compact_context_for_follow_up(mock_get_client):
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = _mock_response(
+        "check_slots", "passport", "action"
+    )
+    mock_get_client.return_value = mock_client
+
+    run_planner(
+        "Show appointments for the first one.",
+        context={
+            "service_type": "passport",
+            "office_options": ["Karachi-I (South)", "Karachi-II (Central)"],
+        },
+    )
+
+    contents = mock_client.models.generate_content.call_args.kwargs["contents"]
+    assert '"service_type": "passport"' in contents
+    assert '"office_options"' in contents
+    assert "Show appointments for the first one." in contents
+
+
 def _graph_state(user_input: str) -> dict:
     return {
         "user_input": user_input,
@@ -89,7 +111,7 @@ def _graph_state(user_input: str) -> dict:
 @patch("backend.graph.graph.run_planner")
 def test_graph_routes_to_knowledge(mock_run_planner, mock_knowledge_agent):
     mock_run_planner.return_value = PlannerOutput(
-        intent="apply_for_service",
+        intent="requirements_checklist",
         service_type="passport",
         next_step="knowledge",
     )

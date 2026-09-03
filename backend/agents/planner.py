@@ -15,7 +15,7 @@ PlannerOutput before it's allowed to flow into the graph state.
 
 import json
 import os
-from typing import Literal
+from typing import Any, Literal, Mapping
 
 from google import genai
 from google.genai import types
@@ -61,10 +61,18 @@ invent or guess a specific service.
     Requirements/checklist questions and fee/cost questions must use this route.
     Use intent "requirements_checklist" for documents/what-to-bring requests,
     and "fee_lookup" for fee or cost requests.
-  - "action"      - the user wants to perform a concrete action (apply, renew, etc.)
-    or locate a service center/office. For a service-center lookup, use intent
-    "service_center_lookup".
-  - "appointment" - the user wants to book or check an appointment.
+    Broad goals such as applying for, getting, or renewing a supported service
+    are journey guidance, not executable actions. Use intent "service_journey"
+    and next_step "knowledge".
+  - "action"      - the user wants a supported executable operation, such as
+    locating a service center/office. For a service-center lookup, use intent
+    "service_center_lookup". For prototype appointment availability, use intent
+    "check_slots" and next_step "action". For a prototype slot booking, use
+    intent "book_slot" and next_step "action".
+    For a request to show journey/progress or what remains, use intent
+    "journey_summary" and next_step "action".
+  - "appointment" - reserved for a real appointment capability that is not
+    currently connected.
   - "clarify"     - the request is ambiguous, off-topic, or you're not confident \
 enough to classify it.
 
@@ -80,7 +88,21 @@ def _get_client() -> genai.Client:
     return genai.Client(api_key=api_key)
 
 
-def run_planner(user_input: str) -> PlannerOutput:
+def _planner_input(user_input: str, context: Mapping[str, Any] | None) -> str:
+    """Build a compact turn prompt without adding full conversation history."""
+    if not context:
+        return user_input
+    return (
+        "Current conversation context (use only when the new message depends on "
+        "it; explicit service changes take precedence):\n"
+        f"{json.dumps(dict(context), ensure_ascii=False)}\n\n"
+        f"New user message:\n{user_input}"
+    )
+
+
+def run_planner(
+    user_input: str, context: Mapping[str, Any] | None = None
+) -> PlannerOutput:
     """Interpret `user_input` and return validated planner output.
 
     Raises:
@@ -93,7 +115,7 @@ def run_planner(user_input: str) -> PlannerOutput:
     try:
         response = client.models.generate_content(
             model=model_name,
-            contents=user_input,
+            contents=_planner_input(user_input, context),
             config=types.GenerateContentConfig(
                 system_instruction=_SYSTEM_PROMPT,
                 response_mime_type="application/json",
