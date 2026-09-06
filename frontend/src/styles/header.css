@@ -73,7 +73,17 @@
   scroll-margin-top: 88px;
 }
 
-@media (max-width: 1000px) {
+@media (min-width: 901px) and (max-width: 1000px) {
+  .header-inner {
+    gap: var(--space-3);
+  }
+
+  .desktop-nav {
+    gap: var(--space-4);
+  }
+}
+
+@media (max-width: 900px) {
   .header-inner {
     display: grid;
     grid-template-columns: 1fr auto auto;
