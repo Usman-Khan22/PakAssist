@@ -1,9 +1,51 @@
 :root {
-  --green: #0C482B;
-  --green2: #166442;
-  --pale: #E7ECE6;
-  --cream: #F7F5F0;
-  --gold: #B89D74;
-  --muted: #6B7280;
-  --line: #DDE2DC;
+  --color-primary: #0b5b3a;
+  --color-primary-dark: #07442d;
+  --color-primary-soft: #edf5f0;
+
+  --color-bg: #fafaf7;
+  --color-surface: #ffffff;
+
+  --color-text: #171717;
+  --color-text-muted: #66706b;
+  --color-border: #dde3de;
+
+  --color-info: #2c69a0;
+  --color-warning: #a66a12;
+  --color-success: #16734a;
+  --color-danger: #b33a3a;
+
+  /* Supporting roles for existing status badges and dark panels. */
+  --color-info-soft: #eef5fb;
+  --color-warning-soft: #fff0d9;
+  --color-danger-soft: #fde8e7;
+  --color-on-primary: #ffffff;
+  --color-on-primary-muted: #c4d6c8;
+  --color-border-on-primary: #ffffff35;
+  --color-border-on-primary-strong: #ffffff66;
+  --color-accent: #b89d74;
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+  --radius-circle: 50%;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  --container: 1180px;
+
+  --shadow-card-hover: 0 8px 24px #0b5b3a12;
+  --shadow-preview: 0 16px 48px #0b5b3a12;
+  --shadow-offset: 12px 12px 0 var(--color-border);
 }
