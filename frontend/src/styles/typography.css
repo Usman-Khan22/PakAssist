@@ -42,3 +42,26 @@ html[lang="ur"] .section-head h2,
   unicode-bidi: isolate;
   display: inline-block;
 }
+
+html[lang="ur"] .hero h1 {
+  font-size: clamp(38px, 4.5vw, 52px);
+  line-height: 1.75;
+  letter-spacing: 0;
+}
+
+html[lang="ur"] .hero-copy > p {
+  line-height: 1.9;
+  margin-block: var(--space-6) var(--space-8);
+}
+
+html[lang="ur"] .hero-search input {
+  min-width: 0;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  html[lang="ur"] .hero-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+}

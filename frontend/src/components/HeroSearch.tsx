@@ -9,7 +9,10 @@ const suggestions = [
   "FBR tax filer guide",
 ];
 
-export default function HeroSearch() {
+export default function HeroSearch({ urdu = false }: { urdu?: boolean }) {
+  const prompt = urdu
+    ? "آپ کس سرکاری خدمت کے بارے میں جاننا چاہتے ہیں؟"
+    : "Ask about any government service...";
   const [text, setText] = useState("");
   const navigate = useNavigate();
   const submit = (e: React.FormEvent) => {
@@ -23,7 +26,9 @@ export default function HeroSearch() {
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Ask about any government service..."
+          placeholder={prompt}
+          aria-label={prompt}
+          data-localized
         />
         <button
           className="voice-search"

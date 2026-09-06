@@ -1,4 +1,5 @@
 import { ShieldCheck } from "lucide-react";
+import { useUrdu } from "../language";
 import Button from "../components/Button";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -12,6 +13,7 @@ import OfficialSources from "../components/OfficialSources";
 import ServiceGrid from "../components/ServiceGrid";
 
 export default function Home() {
+  const urdu = useUrdu();
   return (
     <>
       <Header />
@@ -20,17 +22,21 @@ export default function Home() {
           <div className="container hero-grid">
             <div className="hero-copy">
               <small className="eyebrow">OFFICIAL CIVIC GUIDE</small>
-              <h1>
+              <h1 className={urdu ? "urdu-heading" : ""} data-localized>
+                {urdu ? "سرکاری خدمات، آسان الفاظ میں۔" : <>
                 Government services,
                 <br />
                 <em>made simple.</em>
+                </>}
               </h1>
-              <p>
+              <p data-localized>
+                {urdu ? "شناختی کارڈ، پاسپورٹ، ڈرائیونگ لائسنس اور دیگر سرکاری خدمات کے بارے میں آسان اور مستند رہنمائی حاصل کریں۔" : <>
                 Navigate passports, driving licenses, CNIC/NADRA paperwork, and
                 government appointments in clear English or Urdu. Accurate.
                 Safe. Built for all Pakistani citizens.
+                </>}
               </p>
-              <HeroSearch />
+              <HeroSearch urdu={urdu} />
               <div className="hero-trust">
                 <ShieldCheck size={16} /> Independent guidance · Always verify
                 on official portals

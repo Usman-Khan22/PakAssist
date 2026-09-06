@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from 'react';
+
 const translations: Record<string, string> = {
   "Official sources": "سرکاری ذرائع",
   "How it works": "یہ کیسے کام کرتا ہے",
@@ -42,6 +44,7 @@ function translateNode(root: Node, urdu: boolean) {
   let node: Node | null;
   while ((node = walker.nextNode())) nodes.push(node as Text);
   nodes.forEach(textNode => {
+    if (textNode.parentElement?.closest('[data-localized]')) return;
     const value = textNode.nodeValue?.trim();
     if (!value || value.length > 180) return;
     const translated = urdu ? translations[value] : reverse.get(value);
@@ -50,6 +53,7 @@ function translateNode(root: Node, urdu: boolean) {
   const elementRoot = root as Element;
   elementRoot.querySelectorAll?.('input[placeholder], textarea[placeholder]').forEach((element: Element) => {
     const input = element as HTMLInputElement;
+    if (input.closest('[data-localized]')) return;
     const value = urdu ? translations[input.placeholder] : reverse.get(input.placeholder);
     if (value) input.placeholder = value;
   });
@@ -62,6 +66,14 @@ export function applyLanguage(urdu: boolean) {
   translateNode(document.body, urdu);
   observer = new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(node => translateNode(node, urdu))));
   observer.observe(document.body, { childList: true, subtree: true });
+  window.dispatchEvent(new Event('pakassist-language-change'));
+}
+function subscribeToLanguage(callback: () => void) {
+  window.addEventListener('pakassist-language-change', callback);
+  return () => window.removeEventListener('pakassist-language-change', callback);
+}
+export function useUrdu() {
+  return useSyncExternalStore(subscribeToLanguage, getStoredLanguage, () => false);
 }
 export function getStoredLanguage() { return localStorage.getItem('pakassist-language') === 'ur'; }
 export function setStoredLanguage(urdu: boolean) { localStorage.setItem('pakassist-language', urdu ? 'ur' : 'en'); applyLanguage(urdu); }
