@@ -6,7 +6,7 @@ export default function OfficialSources() {
           <div className="container">
             <SectionHeader
               overline="OFFICIAL TRUST"
-              title="Verified Official Gateways"
+              title="Official government sources"
               description="We only reference directly sourced official federal and provincial portals. No third-party brokers."
             />
             <div className="gateway-grid">
