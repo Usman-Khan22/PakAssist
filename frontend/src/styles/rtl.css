@@ -1,3 +1,16 @@
+html[dir="rtl"] {
+  direction: rtl;
+}
+
+html[dir="rtl"] body {
+  text-align: right;
+}
+
+html[dir="rtl"] .ltr-isolate {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
 html[dir='rtl'] .hero h1,html[dir='rtl'] .page-band h1,html[dir='rtl'] .detail-title h1,html[dir='rtl'] .dashboard-head h1,html[dir='rtl'] .section-head h2,html[dir='rtl'] h2,html[dir='rtl'] h3 {
   letter-spacing: 0;
 }
@@ -16,4 +29,10 @@ html[dir='rtl'] .stepper {
 
 html[dir='rtl'] .step i {
   transform: scaleX(-1);
+}
+
+html[dir="rtl"] input[type="email"],
+html[dir="rtl"] input[type="url"] {
+  direction: ltr;
+  text-align: left;
 }
