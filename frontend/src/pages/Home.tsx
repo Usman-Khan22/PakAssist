@@ -62,9 +62,9 @@ export default function Home() {
         </section>
         <section className="section bilingual">
           <div className="container bilingual-grid">
-            <div className="urdu-card" dir="rtl">
+            <div className="urdu-card" lang="ur" dir="rtl">
               <span>دھوپ میں زبان میں رہنمائی</span>
-              <h3>شناختی کارڈ کی تجدید کیسے کریں؟</h3>
+              <h3 className="urdu-heading">شناختی کارڈ کی تجدید کیسے کریں؟</h3>
               <p>آپ کا سوال، ہماری رہنمائی۔</p>
               <div>
                 ◆ اپنا اصل شناختی کارڈ

@@ -1,7 +1,3 @@
-html[dir='rtl'] body,.urdu-mode {
-  font-family: 'Noto Naskh Arabic','DM Sans',sans-serif;
-}
-
 html[dir='rtl'] .hero h1,html[dir='rtl'] .page-band h1,html[dir='rtl'] .detail-title h1,html[dir='rtl'] .dashboard-head h1,html[dir='rtl'] .section-head h2,html[dir='rtl'] h2,html[dir='rtl'] h3 {
   letter-spacing: 0;
 }

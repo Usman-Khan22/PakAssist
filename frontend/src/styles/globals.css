@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Nastaliq+Urdu:wght@400;500;600&family=Noto+Sans+Arabic:wght@400;500;600&display=swap");
+
 .gateway-card {
   background: #faf9f6 !important;
   border-radius: 7px;
@@ -19,7 +21,7 @@
 
 .gateway-card>span:last-child {
   color: #0c482b;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .home-page .category-card {
@@ -103,7 +105,6 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: 'Plus Jakarta Sans';
   font-size: 18px;
 }
 
@@ -143,7 +144,7 @@ nav a {
 
 nav a.active,nav a:hover {
   color: var(--green);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .nav-ask {
@@ -199,11 +200,10 @@ nav a.active,nav a:hover {
   color: var(--green2);
   font-size: 11px;
   letter-spacing: 1.7px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .hero h1,.page-band h1,.detail-title h1,.dashboard-head h1 {
-  font-family: 'Plus Jakarta Sans';
   font-size: 54px;
   line-height: 1.08;
   letter-spacing: -1.5px;
@@ -299,7 +299,7 @@ nav a.active,nav a:hover {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .question {
@@ -329,7 +329,7 @@ nav a.active,nav a:hover {
   height: 27px;
   display: grid;
   place-items: center;
-  font-weight: 800;
+  font-weight: 600;
   font-size: 12px;
   flex: 0 0 auto;
 }
@@ -392,7 +392,6 @@ nav a.active,nav a:hover {
 
 .stats b {
   display: block;
-  font-family: 'Plus Jakarta Sans';
   font-size: 26px;
 }
 
@@ -418,7 +417,6 @@ nav a.active,nav a:hover {
 }
 
 .section-head h2 {
-  font-family: 'Plus Jakarta Sans';
   font-size: 36px;
   line-height: 1.15;
   margin: 11px 0 18px;
@@ -510,12 +508,10 @@ nav a.active,nav a:hover {
 
 .process-card>span {
   color: var(--gold);
-  font-family: 'Plus Jakarta Sans';
   font-size: 20px;
 }
 
 .process-card h3 {
-  font-family: 'Plus Jakarta Sans';
   font-size: 19px;
   margin: 18px 0 8px;
 }
@@ -643,7 +639,7 @@ nav a.active,nav a:hover {
   align-items: center;
   gap: 9px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .btn-primary {
@@ -684,7 +680,6 @@ nav a.active,nav a:hover {
 }
 
 .gateway-card b {
-  font-family: 'Plus Jakarta Sans';
   font-size: 16px;
 }
 
@@ -724,7 +719,7 @@ footer {
   color: #a9c0ad;
   letter-spacing: 1.5px;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   margin-bottom: 16px;
 }
 
@@ -830,11 +825,10 @@ footer {
 .service-card>small {
   color: var(--green2);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .service-card h3 {
-  font-family: 'Plus Jakarta Sans';
   font-size: 18px;
   line-height: 1.3;
   margin: 8px 0;
@@ -851,7 +845,7 @@ footer {
   font-size: 10px;
   border-radius: 20px;
   padding: 5px 9px;
-  font-weight: 700;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -883,7 +877,7 @@ footer {
   gap: 5px;
   color: var(--green);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   margin-top: 20px;
 }
 
@@ -900,7 +894,7 @@ footer {
 .empty-state button {
   color: var(--green);
   background: transparent;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .detail-head {
@@ -1042,7 +1036,7 @@ footer {
   font-size: 10px;
   color: var(--green2);
   text-transform: uppercase;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .guideline {
@@ -1052,7 +1046,6 @@ footer {
 }
 
 .guideline>span {
-  font-family: 'Plus Jakarta Sans';
   color: var(--gold);
   font-size: 17px;
 }
@@ -1081,7 +1074,6 @@ footer {
 }
 
 .ask-card h3 {
-  font-family: 'Plus Jakarta Sans';
   line-height: 1.35;
   font-size: 18px;
 }
@@ -1110,7 +1102,7 @@ footer {
 .related small {
   color: var(--muted);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .related a {
@@ -1192,7 +1184,7 @@ footer {
 .chat-history.active {
   background: #dfe9df;
   color: var(--green);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .chat-main {
@@ -1324,7 +1316,6 @@ footer {
 }
 
 .chat-empty h2 {
-  font-family: 'Plus Jakarta Sans';
   color: var(--green);
   font-size: 24px;
 }
@@ -1380,7 +1371,6 @@ footer {
 }
 
 .dash-stat>span {
-  font-family: 'Plus Jakarta Sans';
   font-size: 28px;
   color: var(--green);
   display: block;
@@ -1413,11 +1403,10 @@ footer {
   color: var(--green2);
   font-size: 10px;
   letter-spacing: 1.3px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .panel-heading h2 {
-  font-family: 'Plus Jakarta Sans';
   font-size: 24px;
   margin: 8px 0;
 }
@@ -1504,7 +1493,6 @@ footer {
 }
 
 .appointment h3 {
-  font-family: 'Plus Jakarta Sans';
   font-size: 19px;
   margin: 20px 0 2px;
 }
@@ -1593,7 +1581,6 @@ footer {
 }
 
 .mission-grid h2 {
-  font-family: 'Plus Jakarta Sans';
   font-size: 34px;
   line-height: 1.2;
 }
@@ -1631,7 +1618,6 @@ footer {
 
 .impact span {
   color: var(--gold);
-  font-family: 'Plus Jakarta Sans';
 }
 
 .reality-grid,.principles,.roadmap {
@@ -1648,7 +1634,6 @@ footer {
 }
 
 .plain-card h3 {
-  font-family: 'Plus Jakarta Sans';
   font-size: 17px;
 }
 
@@ -1683,7 +1668,6 @@ footer {
 
 .roadmap span {
   color: var(--gold);
-  font-family: 'Plus Jakarta Sans';
 }
 
 .roadmap b {
@@ -1711,7 +1695,6 @@ footer {
 }
 
 .closing h2 {
-  font-family: 'Plus Jakarta Sans';
   font-size: 36px;
   line-height: 1.15;
 }
@@ -1737,7 +1720,6 @@ footer {
 }
 
 .how-card>span {
-  font-family: 'Plus Jakarta Sans';
   font-size: 22px;
   color: var(--gold);
 }
@@ -1747,12 +1729,11 @@ footer {
   color: var(--green2);
   font-size: 10px;
   letter-spacing: 1px;
-  font-weight: 800;
+  font-weight: 600;
   margin-top: 28px;
 }
 
 .how-card h2 {
-  font-family: 'Plus Jakarta Sans';
   font-size: 20px;
 }
 
@@ -1809,7 +1790,6 @@ footer {
 }
 
 .transparency h2 {
-  font-family: 'Plus Jakarta Sans';
   font-size: 24px;
   margin: 10px 0;
 }

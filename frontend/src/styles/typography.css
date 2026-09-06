@@ -1,7 +1,44 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
-
 :root {
-  font-family: 'DM Sans',sans-serif;
   line-height: 1.5;
   font-synthesis: none;
+}
+
+body {
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html[lang="ur"] body,
+[lang="ur"],
+.urdu-ui {
+  font-family: "Noto Sans Arabic", sans-serif;
+  line-height: 1.6;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+h1, h2, h3, h4, h5, h6, b, strong {
+  font-weight: 600;
+}
+
+/* Nastaliq is reserved for editorial headings, never compact UI controls. */
+html[lang="ur"] .hero h1,
+html[lang="ur"] .page-band h1,
+html[lang="ur"] .detail-title h1,
+html[lang="ur"] .dashboard-head h1,
+html[lang="ur"] .section-head h2,
+.urdu-heading {
+  font-family: "Noto Nastaliq Urdu", serif;
+  line-height: 1.9;
+  letter-spacing: 0;
+}
+
+.ltr-isolate {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
 }
