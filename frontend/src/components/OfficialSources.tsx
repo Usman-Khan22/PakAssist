@@ -2,7 +2,7 @@ import SectionHeader from "./SectionHeader";
 
 export default function OfficialSources() {
   return (
-<section className="section gateway" id="trust">
+<section className="section gateway" id="sources">
           <div className="container">
             <SectionHeader
               overline="OFFICIAL TRUST"

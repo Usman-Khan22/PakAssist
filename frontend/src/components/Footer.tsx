@@ -22,7 +22,7 @@ export default function Footer() {
         <div>
           <small>COMPANY</small>
           <Link to="/about">About us</Link>
-          <a href="#trust">Trust & safety</a>
+          <a href="/#sources">Trust & safety</a>
           <a href="#contact">Contact</a>
         </div>
         <div className="footer-note">

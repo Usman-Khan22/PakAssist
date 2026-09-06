@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Globe2 } from "lucide-react";
 import { getStoredLanguage, setStoredLanguage } from "../language";
 
 export default function LanguageSwitcher() {
@@ -9,13 +8,14 @@ export default function LanguageSwitcher() {
   }, [urdu]);
   return (
 <button
-            className="language"
+            type="button"
+            className="language language-switcher"
             onClick={() => setUrdu(!urdu)}
-            aria-label="Switch language"
+            aria-label={urdu ? "Switch to English" : "اردو میں تبدیل کریں"}
+            lang={urdu ? "en" : "ur"}
+            dir={urdu ? "ltr" : "rtl"}
           >
-            <Globe2 size={15} />
-            <span>{urdu ? "اردو" : "EN"}</span>
-            <ChevronDown size={13} />
+            {urdu ? "English" : "اردو"}
           </button>
   );
 }

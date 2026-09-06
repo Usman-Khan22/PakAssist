@@ -1,22 +1,23 @@
 import { ArrowRight } from "lucide-react";
+import type { ButtonHTMLAttributes } from "react";
+
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "primary" | "secondary";
+  icon?: boolean;
+};
 
 export default function Button({
   children,
   variant = "primary",
-  onClick,
-  icon = true,
+  icon = false,
   type = "button",
-}: {
-  children: React.ReactNode;
-  variant?: "primary" | "outline" | "quiet";
-  onClick?: () => void;
-  icon?: boolean;
-  type?: "button" | "submit";
-}) {
+  className = "",
+  ...props
+}: ButtonProps) {
   return (
-    <button type={type} onClick={onClick} className={`btn btn-${variant}`}>
+    <button {...props} type={type} className={`${variant}-button ${className}`.trim()}>
       {children}
-      {icon && <ArrowRight size={16} />}
+      {icon && <ArrowRight size={16} aria-hidden="true" />}
     </button>
   );
 }

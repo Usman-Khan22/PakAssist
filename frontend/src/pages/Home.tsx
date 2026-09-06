@@ -80,7 +80,7 @@ export default function Home() {
               />
               <div className="button-row">
                 <Button onClick={() => {}}>Try Urdu Version</Button>
-                <Button variant="outline" onClick={() => {}}>
+                <Button variant="secondary" onClick={() => {}}>
                   Read Accessibility Mandate
                 </Button>
               </div>

@@ -1,4 +1,6 @@
 const translations: Record<string, string> = {
+  "Official sources": "سرکاری ذرائع",
+  "How it works": "یہ کیسے کام کرتا ہے",
   Home: 'ہوم', Services: 'خدمات', 'How It Works': 'یہ کیسے کام کرتا ہے', About: 'تعارف', 'Ask PakAssist': 'پاک اسسٹ سے پوچھیں',
   'Government services,': 'حکومتی خدمات،', 'made simple.': 'آسان بنا دی گئی ہیں۔', 'OFFICIAL CIVIC GUIDE': 'سرکاری شہری رہنما',
   'FIND YOUR WAY': 'اپنا راستہ تلاش کریں', 'Popular categories': 'مقبول شعبے', 'From question to confident action': 'سوال سے پُراعتماد اقدام تک',
@@ -46,7 +48,7 @@ function translateNode(root: Node, urdu: boolean) {
     if (translated) textNode.nodeValue = textNode.nodeValue!.replace(value, translated);
   });
   const elementRoot = root as Element;
-  elementRoot.querySelectorAll('input[placeholder], textarea[placeholder]').forEach((element: Element) => {
+  elementRoot.querySelectorAll?.('input[placeholder], textarea[placeholder]').forEach((element: Element) => {
     const input = element as HTMLInputElement;
     const value = urdu ? translations[input.placeholder] : reverse.get(input.placeholder);
     if (value) input.placeholder = value;

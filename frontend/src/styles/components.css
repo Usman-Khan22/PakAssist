@@ -55,24 +55,6 @@ button {
   border: 0;
 }
 
-.site-header {
-  height: 76px;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.nav-wrap {
-  width: min(var(--container),calc(100% - var(--space-16)));
-  height: 100%;
-  margin: auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
 .logo {
   display: flex;
   align-items: center;
@@ -101,42 +83,6 @@ button {
   color: var(--color-accent);
 }
 
-nav {
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  margin-left: auto;
-  margin-right: var(--space-8);
-}
-
-nav a {
-  font-size: 14px;
-  color: var(--color-text-muted);
-}
-
-nav a.active,nav a:hover {
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-.nav-ask {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  border-radius: var(--radius-sm);
-  padding: var(--space-3) var(--space-4);
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.nav-tools {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
 .language,.access {
   background: transparent;
   color: var(--color-primary);
@@ -144,16 +90,6 @@ nav a.active,nav a:hover {
   align-items: center;
   gap: var(--space-1);
   font-size: 12px;
-}
-
-.access {
-  padding: var(--space-1);
-}
-
-.mobile-menu {
-  display: none;
-  background: transparent;
-  color: var(--color-primary);
 }
 
 .hero {
@@ -602,33 +538,6 @@ nav a.active,nav a:hover {
   gap: var(--space-2);
 }
 
-.btn {
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  padding: var(--space-3) var(--space-4);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.btn-primary {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.btn-outline {
-  background: var(--color-surface);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.btn-quiet {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
 .gateway-grid {
   display: grid;
   grid-template-columns: repeat(3,1fr);
@@ -1055,7 +964,7 @@ footer {
   line-height: 1.6;
 }
 
-.ask-card .btn {
+.ask-card :is(.primary-button, .secondary-button) {
   background: var(--color-surface);
   color: var(--color-primary);
   width: 100%;
@@ -1105,7 +1014,7 @@ footer {
   gap: var(--space-3);
 }
 
-.chat-sidebar .btn {
+.chat-sidebar :is(.primary-button, .secondary-button) {
   justify-content: center;
   margin: var(--space-4) 0;
 }
@@ -1669,12 +1578,6 @@ footer {
   line-height: 1.15;
 }
 
-.closing .btn {
-  background: transparent;
-  color: var(--color-on-primary);
-  border-color: var(--color-surface);
-}
-
 .how-cards {
   display: grid;
   grid-template-columns: repeat(3,1fr);
@@ -1820,35 +1723,6 @@ footer {
 }
 
 @media (max-width:900px) {
-  .nav-wrap {
-    width: calc(100% - var(--space-10));
-  }
-  nav {
-    display: none;
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 76px;
-    background: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
-    padding: var(--space-4) var(--space-5);
-    flex-direction: column;
-    align-items: stretch;
-    margin: 0;
-    gap: var(--space-1);
-  }
-  nav.nav-open {
-    display: flex;
-  }
-  nav a {
-    padding: var(--space-3);
-  }
-  .mobile-menu {
-    display: block;
-  }
-  .access {
-    display: none;
-  }
   .hero-grid {
     grid-template-columns: 1fr 400px;
     gap: var(--space-8);
@@ -1891,18 +1765,6 @@ footer {
 }
 
 @media (max-width:600px) {
-  .nav-wrap {
-    width: calc(100% - var(--space-8));
-  }
-  .site-header {
-    height: 66px;
-  }
-  .nav-wrap {
-    width: calc(100% - var(--space-8));
-  }
-  nav {
-    top: 66px;
-  }
   .hero {
     padding: var(--space-12) 0 var(--space-10);
   }
@@ -1970,7 +1832,7 @@ footer {
   .detail-title h1 {
     font-size: 34px;
   }
-  .detail-title .btn {
+  .detail-title :is(.primary-button, .secondary-button) {
     margin-top: var(--space-5);
   }
   .detail-head .stepper {
@@ -2097,7 +1959,7 @@ footer {
   .closing h2 {
     font-size: 30px;
   }
-  .closing .btn {
+  .closing :is(.primary-button, .secondary-button) {
     margin-top: var(--space-5);
   }
   .hero-search {

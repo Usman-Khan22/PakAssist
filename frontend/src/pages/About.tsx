@@ -136,7 +136,7 @@ export default function About() {
                 For Citizens.
               </h2>
             </div>
-            <Link to="/services" className="btn btn-outline">
+            <Link to="/services" className="secondary-button">
               Explore services <ArrowRight size={16} />
             </Link>
           </section>
