@@ -6,6 +6,7 @@ API key — they check parsing/validation behavior for representative
 inputs, not model quality.
 """
 from unittest.mock import MagicMock, patch
+import pytest
 
 from backend.agents.planner import PlannerOutput, run_planner
 from backend.graph.graph import build_graph
@@ -149,8 +150,9 @@ def test_graph_routes_unclear_request_to_clarification(mock_run_planner):
     assert result["response"] == "Please clarify which government service you need."
 
 
+@pytest.mark.parametrize("greeting", ["Assalam Walekum", "salam", "salam hello", "Hello, salam!", " salam\nhello "])
 @patch("backend.graph.graph.run_planner")
-def test_roman_urdu_greeting(mock_run_planner):
+def test_roman_urdu_greeting(mock_run_planner, greeting):
     mock_run_planner.return_value = PlannerOutput(intent="unknown", service_type="unknown", next_step="clarify")
-    result = build_graph().invoke(_graph_state("Assalam Walekum"))
+    result = build_graph().invoke(_graph_state(greeting))
     assert "Wa Alaikum Assalam" in result["response"]

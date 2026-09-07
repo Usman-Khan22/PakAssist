@@ -232,10 +232,12 @@ def _clarification_node(state: PakAssistState) -> dict:
     """Ask for clarification when the request cannot be routed safely."""
     if state.get("intent") == "missing_presentation_context":
         return {"response": "Please provide the information or document you want me to explain."}
-    query = state.get("user_input", "").casefold().strip(" .!?")
-    if re.fullmatch(r"(?:assalam\s+walekum|assalamualaikum|assalam o alaikum|salam|salaam|السلام علیکم)", query):
+    query = re.sub(r"[\s,.!?،؟۔]+", " ", state.get("user_input", "").casefold()).strip()
+    salam = r"(?:assalam\s+walekum|assalamualaikum|assalam o alaikum|salam|salaam|السلام علیکم)"
+    greeting_only = re.fullmatch(rf"(?:{salam}|hi|hello|hey)(?:\s+(?:{salam}|hi|hello|hey))*", query)
+    if greeting_only and re.search(salam, query):
         return {"response": "Wa Alaikum Assalam! Main PakAssist hoon. Passport ya driving licence ke bare mein aap ki kya madad kar sakta hoon?"}
-    if query in {"hi", "hello", "hey"}:
+    if greeting_only:
         return {"response": "Hello! How can I help you with a passport or driving licence?"}
     return {"response": message("clarify_service", state.get("preferred_language", "english"))}
 
