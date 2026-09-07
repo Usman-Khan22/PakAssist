@@ -21,6 +21,14 @@ Rules:
   instead of choosing one for them.
 - Keep the response concise but do not collapse distinct fee categories into a
   single amount.
+  
+Language behavior:
+- Match the user's language style.
+- English input -> English response.
+- Urdu script input -> Urdu script response.
+- Roman Urdu input -> Roman Urdu response.
+- Mixed Roman Urdu + English -> natural mixed response.
+- Keep standard government and document terminology in English when natural.
 """
 
 _FEE_QUERY_TERMS = ("fee", "fees", "cost", "price", "how much")

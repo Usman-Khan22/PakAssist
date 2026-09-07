@@ -1,4 +1,5 @@
 """LangGraph workflow for PakAssist."""
+import re
 from langgraph.graph import StateGraph, START, END
 from langchain_core.runnables import RunnableConfig
 
@@ -229,10 +230,14 @@ def _action_node(state: PakAssistState) -> dict:
 
 def _clarification_node(state: PakAssistState) -> dict:
     """Ask for clarification when the request cannot be routed safely."""
-    language = state.get("preferred_language", "english")
     if state.get("intent") == "missing_presentation_context":
-        return {"response": message("presentation_context_required", language)}
-    return {"response": message("clarify_service", language)}
+        return {"response": "Please provide the information or document you want me to explain."}
+    query = state.get("user_input", "").casefold().strip(" .!?")
+    if re.fullmatch(r"(?:assalam\s+walekum|assalamualaikum|assalam o alaikum|salam|salaam|السلام علیکم)", query):
+        return {"response": "Wa Alaikum Assalam! Main PakAssist hoon. Passport ya driving licence ke bare mein aap ki kya madad kar sakta hoon?"}
+    if query in {"hi", "hello", "hey"}:
+        return {"response": "Hello! How can I help you with a passport or driving licence?"}
+    return {"response": message("clarify_service", state.get("preferred_language", "english"))}
 
 
 def _route_after_planner(state: PakAssistState) -> str:

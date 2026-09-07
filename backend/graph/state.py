@@ -25,6 +25,7 @@ class PakAssistState(TypedDict, total=False):
     service_type: str
     next_step: str
     response: str
+    is_first_turn: bool
     uploaded_files: Optional[List[str]]
     sources: Optional[List[SourceRef]]
     pending_clarification: Optional[str]

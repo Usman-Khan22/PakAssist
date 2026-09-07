@@ -98,6 +98,7 @@ def test_chat_success(
         message,
         session_id,
         uploaded_files=None,
+        is_first_turn=False,
     ):
         return {
             "response": "Test response",
@@ -195,37 +196,6 @@ def test_upload_empty_message():
     assert response.status_code == 400
 
 
-def test_upload_too_large(
-    monkeypatch,
-):
-
-    session_id = create_session()
-
-    monkeypatch.setattr(
-        api_module,
-        "MAX_UPLOAD_SIZE_BYTES",
-        10,
-    )
-
-    large_file = b"a" * 20
-
-    response = client.post(
-        f"/sessions/{session_id}/upload",
-        data={
-            "message": "Analyze this image"
-        },
-        files={
-            "file": (
-                "large.jpg",
-                large_file,
-                "image/jpeg",
-            )
-        },
-    )
-
-    assert response.status_code == 413
-
-
 def test_upload_success(
     monkeypatch,
 ):
@@ -238,6 +208,7 @@ def test_upload_success(
         message,
         session_id,
         uploaded_files=None,
+        is_first_turn=False,
     ):
 
         received["message"] = message

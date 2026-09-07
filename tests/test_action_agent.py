@@ -36,7 +36,7 @@ def test_driving_license_center_in_represented_city():
 def test_driving_license_lahore_does_not_substitute_another_city():
     result = _invoke("Where can I get a driving license in Lahore?", "driving_license")
 
-    assert "couldn't find" in result["response"]
+    assert "CTPL Licensing Center, Manawan" in result["response"]
     assert "Lahore" in result["response"]
     assert "Attock Driving Licensing Branch" not in result["response"]
 

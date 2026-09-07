@@ -2,6 +2,12 @@ export type Language = 'en' | 'ur';
 const STORAGE_KEY = 'pakassist-language';
 
 export const urduCopy: Record<string, string> = {
+  'Session-based guidance': 'موجودہ سیشن میں رہنمائی',
+  'Speaking…': 'جواب سنایا جا رہا ہے…',
+  'Continue your journey': 'اپنا سفر جاری رکھیں',
+  'Ask about your journey progress in the current conversation.': 'موجودہ گفتگو میں اپنے سفر کی پیش رفت کے بارے میں پوچھیں۔',
+  'Voice input is unsupported in this browser. You can continue typing.': 'اس براؤزر میں آواز کی سہولت دستیاب نہیں۔ آپ لکھ کر بات کر سکتے ہیں۔',
+  'Coverage is limited, driving-licence office data is incomplete, and details may change.': 'دائرہ محدود ہے، ڈرائیونگ لائسنس دفاتر کا ڈیٹا نامکمل ہے اور معلومات بدل سکتی ہیں۔',
   'Services':'خدمات','How it works':'یہ کیسے کام کرتا ہے','Official sources':'سرکاری ذرائع','About':'ہمارے بارے میں','Ask PakAssist':'پاک اسسٹ سے پوچھیں',
   'Government services, explained simply.':'سرکاری خدمات، آسان الفاظ میں۔','Ask about passport or driving licence requirements, fees, offices, and your next step.':'پاسپورٹ یا ڈرائیونگ لائسنس کی ضروریات، فیس، دفاتر اور اگلے قدم کے بارے میں پوچھیں۔','A clearer path through public services':'عوامی خدمات کے لیے ایک واضح راستہ','Clear guidance for selected Pakistani public services.':'منتخب پاکستانی عوامی خدمات کے لیے واضح رہنمائی۔','Prototype only. PakAssist is not a government authority and does not submit applications or make real bookings.':'صرف پروٹوٹائپ۔ پاک اسسٹ سرکاری ادارہ نہیں اور درخواستیں جمع یا حقیقی بکنگ نہیں کرتا۔',
   'What do you need help with?':'آپ کو کس چیز میں مدد چاہیے؟','Search or ask a question':'تلاش کریں یا سوال پوچھیں','Ask your question':'اپنا سوال پوچھیں',

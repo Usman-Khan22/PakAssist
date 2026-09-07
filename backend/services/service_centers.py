@@ -13,7 +13,7 @@ from typing import Any, Literal
 _DATA_DIR = Path(__file__).resolve().parents[2] / "knowledge_base"
 _DATASET_FILES = {
     "passport": "passport_service_centers.json",
-    "driving_license": "driving_license_service_centers.json",
+    "driving_license": "driving_license_service_centers (1).json",
 }
 _LOCATION_PATTERN = re.compile(
     r"\b(?:in|near|at|around)\s+([a-z][a-z .'-]*?)(?=[?.!,;]|$)", re.IGNORECASE

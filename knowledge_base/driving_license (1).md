@@ -108,20 +108,37 @@ Confirmed so far:
 | Province | Office | Address | Phone | Confidence |
 |---|---|---|---|---|
 | Islamabad (ICT) | ITP License Branch, Shakarparian | Shakarparian, Islamabad | — | High |
+| Punjab | CTPL Licensing Center, Manawan (Lahore) | Manawan Traffic Police Lines, Lahore | 042-99332181 | High |
+| Punjab | Rawalpindi Licensing Office | Traffic HQ, Main Peshawar Rd, Westridge 2, Rawalpindi | (051) 9272616 | High |
 | Punjab | Attock Driving Licensing Branch | DSP Traffic Office, Saddar Bazar, Attock Cantt | 0579-316006 | High |
-| Punjab | Bhakkar Driving Licensing Branch | Driving Licensing Branch, DPO Office, Bhakkar | 0453-9200357 | High |
-| Sindh | Sindh Police Driving License Dept. (province-wide, online-first via DLS) | Branch addresses not yet independently confirmed | — | Medium |
-| KP | KP Excise, Taxation & Transport Dept. | Not confirmed | — | Low |
-| Balochistan | Balochistan Excise & Taxation Dept. | Not confirmed | — | Low |
+| Punjab | Bhakkar Driving Licensing Branch | DPO Office, Bhakkar | 0453-9200357 | High |
+| Punjab | Faisalabad / Multan / Gujranwala Licensing Offices | See dataset | See dataset | Medium |
+| Sindh | DLS Clifton Branch, Karachi | Zamzama St. No. 11, near Do Talwar, Clifton, Karachi | — | Medium-High |
+| Sindh | DLS Nazimabad Branch, Karachi | Old Fire Brigade Station Bldg, Petrol Pump, Nazimabad, Karachi | — | Medium-High |
+| KP | District Transport Office, Peshawar | Main G.T. Road, near Peshawar Bus Terminal | 091-9225311 | Medium |
+| Balochistan | Excise & Taxation Dept., Quetta (Motor Registering Authority) | Quetta (exact street address unconfirmed) | 081-9211373 / 081-9211377 | Low-Medium |
+
+The full list, including hours, required documents, and services per office,
+is in `service_center_datasets/driving_license_service_centers.json` — 15
+records as of the latest update, still concentrated in major cities since
+that's where verifiable official information exists.
 
 **For the full Punjab district list:** the official source is
-`https://trafficpolice.punjab.gov.pk/licensing_offices`, but it blocks
-automated scraping — someone on the team needs to open it in a browser and
-transcribe the remaining districts by hand. **Do not** substitute addresses
-from non-`.gov.pk` sites found during research (e.g. `dlims-punjab.com.pk`,
-`dlims.org.pk`) — several of these are not official and closely mimic the
-real DLIMS branding, which is itself worth a note to the wider team as a
-citizen-facing scam risk, separate from our own data-quality concerns.
+`https://trafficpolice.punjab.gov.pk/licensing_offices` (and Lahore's own
+`ctplahore.gop.pk/license-centers`), but both block automated scraping —
+someone on the team needs to open them in a browser and transcribe the
+remaining districts/booths by hand.
+
+**Do not** pull driving-license office info from non-`.gov.pk`/`.gop.pk`
+sites found during research — several closely mimic official branding and
+are worth flagging to the team as a citizen-facing scam risk, not just a
+data-quality issue:
+- `dlims-punjab.com.pk`, `dlims.org.pk` — look-alike Punjab DLIMS domains.
+- `transport.kpdata.gov.pk.onl` — appeared while researching KP, claiming to
+  be a KP Transport Department verification portal. The `.gov.pk.onl`
+  pattern is a classic look-alike trick (a real `.onl` domain with
+  "gov.pk" stuffed into the subdomain to look official) — this is **not**
+  a genuine government address and should never be linked to a user.
 
 ## 8. Common Pitfalls (for the agent to proactively warn users about)
 
