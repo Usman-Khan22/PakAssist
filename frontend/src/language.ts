@@ -1,65 +1,25 @@
-const translations: Record<string, string> = {
-  Home: 'ہوم', Services: 'خدمات', 'How It Works': 'یہ کیسے کام کرتا ہے', About: 'تعارف', 'Ask PakAssist': 'پاک اسسٹ سے پوچھیں',
-  'Government services,': 'حکومتی خدمات،', 'made simple.': 'آسان بنا دی گئی ہیں۔', 'OFFICIAL CIVIC GUIDE': 'سرکاری شہری رہنما',
-  'FIND YOUR WAY': 'اپنا راستہ تلاش کریں', 'Popular categories': 'مقبول شعبے', 'From question to confident action': 'سوال سے پُراعتماد اقدام تک',
-  'THE SERVICE JOURNEY': 'خدمت کا سفر', 'Know what comes next': 'اگلا مرحلہ جانیں', 'MADE FOR EVERYONE': 'سب کے لیے',
-  'OFFICIAL GATEWAYS': 'سرکاری ویب پورٹلز', 'Always close to the source': 'ہمیشہ اصل ذریعے کے قریب',
-  'Your next step': 'آپ کا اگلا مرحلہ', 'YOUR NEXT STEP': 'آپ کا اگلا مرحلہ', 'Government Services': 'حکومتی خدمات',
-  'Search services...': 'خدمات تلاش کریں...', 'All Services': 'تمام خدمات', Passport: 'پاسپورٹ', 'Driving License': 'ڈرائیونگ لائسنس',
-  'CNIC/NADRA': 'شناختی کارڈ / نادرا', 'Vehicle Registration': 'گاڑی کی رجسٹریشن', 'Tax & Revenue': 'ٹیکس اور آمدنی', Documents: 'دستاویزات',
-  Available: 'دستیاب', 'View guide': 'رہنما دیکھیں', 'Service not found': 'خدمت نہیں ملی', 'Return to services': 'خدمات پر واپس جائیں',
-  'BEFORE YOU BEGIN': 'شروع کرنے سے پہلے', 'Eligibility checklist': 'اہلیت کی فہرست', 'PREPARE AHEAD': 'پہلے سے تیاری کریں',
-  'Required documents': 'مطلوبہ دستاویزات', 'COSTS & TIMELINES': 'فیس اور مدت', 'Fee schedule': 'فیس کا شیڈول',
-  'YOUR ROADMAP': 'آپ کا راستہ', 'Application process': 'درخواست کا عمل', 'Start online application': 'آن لائن درخواست شروع کریں',
-  'Ask PakAssist AI': 'پاک اسسٹ اے آئی سے پوچھیں', 'New chat': 'نئی گفتگو', 'PINNED TOPICS': 'پن کیے گئے موضوعات',
-  'RECENT CHATS': 'حالیہ گفتگو', TODAY: 'آج', YESTERDAY: 'کل', 'AI Agent Active': 'اے آئی ایجنٹ فعال',
-  'Ask a follow-up question...': 'مزید سوال پوچھیں...', 'Attachments coming soon': 'منسلکات جلد دستیاب ہوں گے', 'Continue with': 'مزید جانیں:',
-  'Normal or Urgent?': 'عام یا فوری؟', 'Adult or Minor?': 'بالغ یا نابالغ؟', 'Islamabad or Other City?': 'اسلام آباد یا کوئی اور شہر؟',
-  'What can we help you navigate?': 'ہم آپ کی کیسے رہنمائی کر سکتے ہیں؟', 'Welcome back, Ahmed': 'خوش آمدید، احمد',
-  'Active Applications': 'فعال درخواستیں', 'Documents Prepared': 'تیار دستاویزات', 'Upcoming Appointment': 'آئندہ ملاقات',
-  'Your applications': 'آپ کی درخواستیں', 'View all': 'سب دیکھیں', 'IN PROGRESS': 'جاری ہے', 'DOCUMENT CHECKLIST': 'دستاویزات کی فہرست',
-  'NEXT APPOINTMENT': 'اگلی ملاقات', 'QUICK ACTIONS': 'فوری اقدامات', Reschedule: 'دوبارہ وقت لیں', Cancel: 'منسوخ کریں',
-  'STEP-BY-STEP SYSTEM': 'مرحلہ وار نظام', 'How PakAssist Works': 'پاک اسسٹ کیسے کام کرتا ہے', 'CORE FUNCTIONS': 'بنیادی سہولیات',
-  'Everything you need to move forward': 'آگے بڑھنے کے لیے ہر ضروری چیز', 'TRANSPARENCY NOTICE': 'شفافیت کا نوٹس', 'COMMON QUESTIONS': 'عام سوالات',
-  'Good to know': 'جاننا مفید ہے', 'OUR IDENTITY': 'ہماری شناخت', 'About PakAssist': 'پاک اسسٹ کے بارے میں', 'THE MISSION': 'مقصد',
-  'Civic tasks shouldn’t feel like detective work.': 'شہری کام جاسوسی جیسے مشکل نہیں ہونے چاہئیں۔', 'WHAT GUIDES US': 'ہماری رہنمائی کے اصول',
-  'Useful first. Always honest.': 'سب سے پہلے مفید، ہمیشہ ایماندار۔', 'CIVIC ROADMAP': 'شہری منصوبہ', 'Growing with the people we serve.': 'لوگوں کے ساتھ آگے بڑھنا۔',
-  'Built by Citizens,': 'شہریوں کا بنایا ہوا،', 'For Citizens.': 'شہریوں کے لیے۔', 'OPEN-SOURCE CIVIC TECHNOLOGY': 'اوپن سورس شہری ٹیکنالوجی',
-  'New Passport Application': 'نئے پاسپورٹ کی درخواست', 'Passport Renewal': 'پاسپورٹ کی تجدید', "Learner's Driving Permit": 'لرنر ڈرائیونگ پرمٹ',
-  'CNIC Registration': 'شناختی کارڈ کا اندراج', 'CNIC Renewal': 'شناختی کارڈ کی تجدید', 'Biometric Vehicle Transfer': 'بائیومیٹرک گاڑی منتقلی',
-  'FBR Income Tax Filing': 'ایف بی آر انکم ٹیکس فائلنگ', 'Domicile Certificate': 'ڈومیسائل سرٹیفکیٹ', 'Police Character Certificate': 'پولیس کریکٹر سرٹیفکیٹ',
-  'Original CNIC': 'اصل شناختی کارڈ', 'Recent photograph': 'حالیہ تصویر', 'Proof of address': 'پتے کا ثبوت', 'Previous passport': 'پچھلا پاسپورٹ',
-  Normal: 'عام', Urgent: 'فوری', 'Fast Track': 'فاسٹ ٹریک', Completed: 'مکمل', 'In Progress': 'جاری ہے', 'Under Review': 'جائزے کے تحت',
-  'Tap to mark ready': 'تیار ہونے پر نشان لگائیں', Ready: 'تیار',
+export type Language = 'en' | 'ur';
+const STORAGE_KEY = 'pakassist-language';
+
+export const urduCopy: Record<string, string> = {
+  'Services':'خدمات','How it works':'یہ کیسے کام کرتا ہے','Official sources':'سرکاری ذرائع','About':'ہمارے بارے میں','Ask PakAssist':'پاک اسسٹ سے پوچھیں',
+  'Government services, explained simply.':'سرکاری خدمات، آسان الفاظ میں۔','Ask about passport or driving licence requirements, fees, offices, and your next step.':'پاسپورٹ یا ڈرائیونگ لائسنس کی ضروریات، فیس، دفاتر اور اگلے قدم کے بارے میں پوچھیں۔','A clearer path through public services':'عوامی خدمات کے لیے ایک واضح راستہ','Clear guidance for selected Pakistani public services.':'منتخب پاکستانی عوامی خدمات کے لیے واضح رہنمائی۔','Prototype only. PakAssist is not a government authority and does not submit applications or make real bookings.':'صرف پروٹوٹائپ۔ پاک اسسٹ سرکاری ادارہ نہیں اور درخواستیں جمع یا حقیقی بکنگ نہیں کرتا۔',
+  'What do you need help with?':'آپ کو کس چیز میں مدد چاہیے؟','Search or ask a question':'تلاش کریں یا سوال پوچھیں','Ask your question':'اپنا سوال پوچھیں',
+  'Trusted guidance':'قابلِ اعتماد رہنمائی','Grounded in curated government information':'منتخب سرکاری معلومات پر مبنی','English and Urdu':'انگریزی اور اردو','Switch language at any time':'کسی بھی وقت زبان تبدیل کریں','Your privacy':'آپ کی رازداری','Uploads stay within the current session':'اپ لوڈ موجودہ سیشن تک محدود رہتے ہیں',
+  'Supported services':'دستیاب خدمات','Focused help for two common citizen journeys.':'دو عام شہری خدمات کے لیے مخصوص رہنمائی۔','View service':'خدمت دیکھیں','Three simple steps from question to next action.':'سوال سے اگلے قدم تک تین آسان مراحل۔','Passport':'پاسپورٹ','Driving licence':'ڈرائیونگ لائسنس','Grounded document checklists':'قابلِ اعتماد دستاویزی چیک لسٹ','Fee guidance from trusted content':'قابلِ اعتماد معلومات سے فیس رہنمائی','Available fee guidance':'دستیاب فیس رہنمائی','Service-centre lookup':'خدمت مرکز کی تلاش','Demo appointment flow':'ڈیمو اپائنٹمنٹ کا عمل',
+  'Start with a question':'ایک سوال سے آغاز کریں','PakAssist identifies the service and what you need.':'پاک اسسٹ خدمت اور آپ کی ضرورت کو سمجھتا ہے۔','Check trusted information':'قابلِ اعتماد معلومات دیکھیں','Answers use curated knowledge and show their sources.':'جوابات منتخب معلومات سے آتے ہیں اور ذرائع دکھاتے ہیں۔','Take the next step':'اگلا قدم اٹھائیں','Get a checklist, fee guidance, office options, or a demo appointment.':'چیک لسٹ، فیس رہنمائی، دفتر کے اختیارات یا ڈیمو اپائنٹمنٹ حاصل کریں۔',
+  'Ready to find your next step?':'اپنا اگلا قدم جاننے کے لیے تیار ہیں؟','Open the assistant and ask in your own words.':'اسسٹنٹ کھولیں اور اپنے الفاظ میں سوال پوچھیں۔','Explore official sources':'سرکاری ذرائع دیکھیں','Direct links to the authorities behind the information.':'معلومات فراہم کرنے والے اداروں کے براہِ راست روابط۔','Official website':'سرکاری ویب سائٹ',
+  'Supported assistance':'دستیاب رہنمائی','Other government resources':'دیگر سرکاری وسائل','These are official directory links, not PakAssist agent workflows.':'یہ سرکاری ڈائریکٹری روابط ہیں، پاک اسسٹ کی رہنمائی خدمات نہیں۔','Open official site':'سرکاری ویب سائٹ کھولیں','No matching service':'کوئی متعلقہ خدمت نہیں ملی','Try passport or driving licence, or ask PakAssist directly.':'پاسپورٹ یا ڈرائیونگ لائسنس تلاش کریں، یا پاک اسسٹ سے براہِ راست پوچھیں۔','Focused guidance where PakAssist currently has a dedicated knowledge and action flow.':'وہ مخصوص رہنمائی جہاں پاک اسسٹ کا علمی اور عملی نظام دستیاب ہے۔','Filter services':'خدمات تلاش کریں','Service not found':'خدمت نہیں ملی',
+  'What PakAssist can help with':'پاک اسسٹ کس میں مدد کر سکتا ہے','Example questions':'مثالی سوالات','Source authority':'معلومات کا ادارہ','Back to services':'خدمات پر واپس جائیں','This prototype does not submit government applications or make real bookings. Always confirm time-sensitive details on the official website.':'یہ پروٹوٹائپ سرکاری درخواست جمع یا حقیقی بکنگ نہیں کرتا۔ تازہ معلومات کی سرکاری ویب سائٹ سے تصدیق کریں۔',
+  'PakAssist conversation':'پاک اسسٹ گفتگو','Local interface preview · backend not connected':'مقامی انٹرفیس پیش نظارہ · بیک اینڈ منسلک نہیں','Welcome to PakAssist':'پاک اسسٹ میں خوش آمدید','Ask a question to begin. You can also attach one image or PDF for the current message.':'شروع کرنے کے لیے سوال پوچھیں۔ موجودہ پیغام کے ساتھ ایک تصویر یا پی ڈی ایف بھی منسلک کر سکتے ہیں۔','Type your message':'اپنا پیغام لکھیں','Attach a file':'فائل منسلک کریں','Send message':'پیغام بھیجیں','Clear chat':'گفتگو صاف کریں','PakAssist is preparing a response':'پاک اسسٹ جواب تیار کر رہا ہے','Try again':'دوبارہ کوشش کریں','No sources were returned for this response.':'اس جواب کے لیے کوئی ذریعہ نہیں ملا۔','Official source':'سرکاری ذریعہ','Uploaded document':'اپ لوڈ شدہ دستاویز','Remove attachment':'منسلک فائل ہٹائیں','Private session':'نجی سیشن','You':'آپ','Local journey preview':'مقامی سفر کا پیش نظارہ','Demo appointment':'ڈیمو اپائنٹمنٹ','Not reviewed':'ابھی نہیں دیکھا','Not booked':'بک نہیں ہوا',
+  'My PakAssist Journey':'میرا پاک اسسٹ سفر','A private, session-based view of the guidance steps you review.':'آپ کے دیکھے گئے رہنمائی مراحل کا نجی، سیشن پر مبنی منظر۔','No active journey yet':'ابھی کوئی فعال سفر نہیں','Start a chat about a passport or driving licence. Journey progress will appear here after backend integration.':'پاسپورٹ یا ڈرائیونگ لائسنس کے بارے میں گفتگو شروع کریں۔ بیک اینڈ منسلک ہونے کے بعد سفر کی پیش رفت یہاں دکھائی جائے گی۔','Start a journey':'سفر شروع کریں','Session overview':'سیشن کا خلاصہ','Journey information is designed for the current session. This frontend does not contain government application records.':'سفر کی معلومات موجودہ سیشن کے لیے ہیں۔ اس فرنٹ اینڈ میں سرکاری درخواستوں کا ریکارڈ موجود نہیں۔',
+  'How PakAssist works':'پاک اسسٹ کیسے کام کرتا ہے','A focused assistant for navigating selected public services.':'منتخب عوامی خدمات کو سمجھنے کے لیے مخصوص معاون۔','Built for clear next steps':'واضح اگلے قدم کے لیے بنایا گیا','PakAssist is a prototype citizen-assistance experience for selected Pakistani public services.':'پاک اسسٹ منتخب پاکستانی عوامی خدمات کے لیے ایک پروٹوٹائپ شہری رہنمائی تجربہ ہے۔','What this prototype includes':'اس پروٹوٹائپ میں کیا شامل ہے','Current limitations':'موجودہ حدود','About PakAssist':'پاک اسسٹ کے بارے میں','Privacy and uploads':'رازداری اور اپ لوڈز','Prototype disclaimer':'پروٹوٹائپ وضاحت','From a question to useful guidance':'سوال سے مفید رہنمائی تک','Ask naturally':'اپنے انداز میں پوچھیں','Write in English or Urdu. You can name the service now or clarify it in the conversation.':'انگریزی یا اردو میں لکھیں۔ خدمت کا نام بتائیں یا گفتگو میں واضح کریں۔','Review grounded help':'قابلِ اعتماد مدد دیکھیں','The connected backend can retrieve trusted information, format checklists, and retain the active service during a session.':'منسلک بیک اینڈ قابلِ اعتماد معلومات حاصل، چیک لسٹ ترتیب اور سیشن میں فعال خدمت یاد رکھ سکتا ہے۔','Choose a next step':'اگلا قدم منتخب کریں','Continue to fees, office options, journey progress, or a clearly labelled demo appointment flow.':'فیس، دفتر، سفر کی پیش رفت یا واضح ڈیمو اپائنٹمنٹ کی طرف بڑھیں۔','What it does not do':'یہ کیا نہیں کرتا','Submit a government application':'سرکاری درخواست جمع کرنا','Guarantee fees, availability, or processing time':'فیس، دستیابی یا عمل کے وقت کی ضمانت','Create a real appointment':'حقیقی اپائنٹمنٹ بنانا','Replace an official authority':'سرکاری ادارے کا متبادل بننا','Citizen-first design':'شہری ترجیحی ڈیزائن','English and Urdu guidance, trusted-source visibility, session-based follow-ups, document-upload interfaces, service-centre lookup, journey progress, and demo appointment interactions for supported services.':'دستیاب خدمات کے لیے انگریزی اور اردو رہنمائی، قابلِ اعتماد ذرائع، سیشن میں اگلے سوالات، دستاویز اپ لوڈ انٹرفیس، مرکز تلاش، سفر کی پیش رفت اور ڈیمو اپائنٹمنٹ۔','The frontend is currently a local UI preview and is not connected to the PakAssist backend. Coverage is limited, driving-licence office data is incomplete, and details may change.':'فرنٹ اینڈ اس وقت مقامی پیش نظارہ ہے اور پاک اسسٹ بیک اینڈ سے منسلک نہیں۔ دائرہ محدود ہے، ڈرائیونگ لائسنس دفاتر کا ڈیٹا نامکمل ہے اور معلومات بدل سکتی ہیں۔','Uploaded files are intended for temporary session use. This interface does not provide long-term accounts or government record storage.':'اپ لوڈ فائلیں عارضی سیشن کے لیے ہیں۔ یہ انٹرفیس مستقل اکاؤنٹ یا سرکاری ریکارڈ ذخیرہ نہیں کرتا۔','PakAssist is not a government authority. It does not submit applications, calculate GPS distance, check live government systems, or make real bookings.':'پاک اسسٹ سرکاری ادارہ نہیں۔ یہ درخواست جمع، جی پی ایس فاصلہ، براہِ راست سرکاری نظام یا حقیقی بکنگ نہیں کرتا۔',
+  'Government services, explained clearly.':'سرکاری خدمات، واضح اور آسان انداز میں۔','Passport requirements and procedures':'پاسپورٹ کی ضروریات اور طریقہ کار','Driving licence information and services':'ڈرائیونگ لائسنس کی معلومات اور خدمات','What documents do I need for a passport?':'پاسپورٹ کے لیے مجھے کن دستاویزات کی ضرورت ہے؟','How much does a passport cost?':'پاسپورٹ کی فیس کتنی ہے؟','Find a passport office in Karachi':'کراچی میں پاسپورٹ دفتر تلاش کریں','What should I take for a driving licence?':'ڈرائیونگ لائسنس کے لیے مجھے کیا ساتھ لے جانا چاہیے؟','Find a driving licence office in Lahore':'لاہور میں ڈرائیونگ لائسنس دفتر تلاش کریں','Show my driving licence journey progress':'میرے ڈرائیونگ لائسنس سفر کی پیش رفت دکھائیں',
+  'Processing document…':'دستاویز پر کارروائی ہو رہی ہے…','PakAssist is temporarily unavailable. Please try again.':'پاک اسسٹ عارضی طور پر دستیاب نہیں۔ دوبارہ کوشش کریں۔',
+  'Accessibility controls':'رسائی کے اختیارات','Read page':'صفحہ سنیں','Stop reading':'پڑھنا بند کریں','Read response':'جواب سنیں','Response actions':'جواب کے اختیارات','Copy response':'جواب نقل کریں','Response copied':'جواب نقل ہو گیا','Copy':'نقل کریں','Copied':'نقل ہو گیا','Ask with voice':'آواز سے پوچھیں','Stop voice input':'آواز لینا بند کریں','Voice input processing':'آواز پر کارروائی جاری ہے','Listening…':'سنا جا رہا ہے…','Processing voice…':'آواز پر کارروائی ہو رہی ہے…','Voice input could not be started. You can continue typing.':'آواز شروع نہیں ہو سکی۔ آپ لکھنا جاری رکھ سکتے ہیں۔',
+  'Open navigation':'نیویگیشن کھولیں','Close navigation':'نیویگیشن بند کریں','Main navigation':'مرکزی نیویگیشن','Choose language':'زبان منتخب کریں','Footer navigation':'فوٹر نیویگیشن','Skip to main content':'مرکزی مواد پر جائیں',
 };
-const reverse = new Map(Object.entries(translations).map(([english, urdu]) => [urdu, english]));
-let observer: MutationObserver | undefined;
-function translateNode(root: Node, urdu: boolean) {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  const nodes: Text[] = [];
-  let node: Node | null;
-  while ((node = walker.nextNode())) nodes.push(node as Text);
-  nodes.forEach(textNode => {
-    const value = textNode.nodeValue?.trim();
-    if (!value || value.length > 180) return;
-    const translated = urdu ? translations[value] : reverse.get(value);
-    if (translated) textNode.nodeValue = textNode.nodeValue!.replace(value, translated);
-  });
-  const elementRoot = root as Element;
-  elementRoot.querySelectorAll('input[placeholder], textarea[placeholder]').forEach((element: Element) => {
-    const input = element as HTMLInputElement;
-    const value = urdu ? translations[input.placeholder] : reverse.get(input.placeholder);
-    if (value) input.placeholder = value;
-  });
-}
-export function applyLanguage(urdu: boolean) {
-  document.documentElement.lang = urdu ? 'ur' : 'en';
-  document.documentElement.dir = urdu ? 'rtl' : 'ltr';
-  document.body.classList.toggle('urdu-mode', urdu);
-  if (observer) observer.disconnect();
-  translateNode(document.body, urdu);
-  observer = new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(node => translateNode(node, urdu))));
-  observer.observe(document.body, { childList: true, subtree: true });
-}
-export function getStoredLanguage() { return localStorage.getItem('pakassist-language') === 'ur'; }
-export function setStoredLanguage(urdu: boolean) { localStorage.setItem('pakassist-language', urdu ? 'ur' : 'en'); applyLanguage(urdu); }
+
+export function getInitialLanguage(): Language { return window.localStorage.getItem(STORAGE_KEY) === 'ur' ? 'ur' : 'en'; }
+export function applyLanguage(language: Language) { window.localStorage.setItem(STORAGE_KEY, language); document.documentElement.lang = language; document.documentElement.dir = language === 'ur' ? 'rtl' : 'ltr'; document.body.classList.toggle('urdu-mode', language === 'ur'); }
+export function translate(language: Language, english: string) { return language === 'ur' ? urduCopy[english] ?? english : english; }

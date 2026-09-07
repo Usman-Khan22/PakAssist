@@ -14,6 +14,12 @@ from backend.services.journey import (
     is_service_journey_goal,
     journey_orientation,
 )
+from backend.services.language import (
+    detect_language,
+    is_language_override_request,
+    is_simple_language_request,
+    message,
+)
 
 
 def _planner_context(state: PakAssistState) -> dict:
@@ -26,6 +32,7 @@ def _planner_context(state: PakAssistState) -> dict:
         "office_options",
         "appointment_date",
         "pending_clarification",
+        "preferred_language",
     ):
         value = state.get(field)
         if value and value != "unknown":
@@ -58,44 +65,104 @@ def _contextual_appointment_intent(state: PakAssistState) -> str | None:
 
 def _planner_node(state: PakAssistState) -> dict:
     """Runs the Planner Agent and returns only the fields it owns."""
+    preferred_language = detect_language(
+        state.get("user_input", ""), state.get("preferred_language")
+    )
+    simple_language = is_simple_language_request(state.get("user_input", ""))
+    language_override = is_language_override_request(state.get("user_input", ""))
+
+    def planned(update: dict) -> dict:
+        return {
+            **update,
+            "preferred_language": preferred_language,
+            "simple_language": simple_language,
+        }
+
     pending = state.get("pending_clarification")
     if pending in {"location", "office"}:
         user_input = state.get("user_input", "").strip()
         if pending == "location":
             original_request = (state.get("pending_request") or "").rstrip(" ?.!")
             user_input = f"{original_request} in {user_input}"
-        return {
+        return planned({
             "user_input": user_input,
             "intent": state["intent"],
             "service_type": state["service_type"],
             "next_step": "action",
             "pending_clarification": None,
             "pending_request": None,
-        }
+        })
 
     result = run_planner(state["user_input"], context=_planner_context(state))
     previous_service = state.get("service_type")
+    previous_intent = state.get("intent")
+    if simple_language or language_override:
+        if (
+            not state.get("response")
+            and not state.get("uploaded_files")
+            and previous_service in {None, "", "unknown"}
+            and result.service_type == "unknown"
+        ):
+            return planned({
+                "intent": "missing_presentation_context",
+                "service_type": "unknown",
+                "next_step": "clarify",
+            })
+        service_type = result.service_type
+        if service_type == "unknown" and previous_service not in {None, "", "unknown"}:
+            service_type = previous_service
+        document_presentation = (
+            "document_presentation"
+            if state.get("uploaded_files")
+            or previous_intent in {
+                "inspect_upload",
+                "simple_document_explanation",
+                "document_presentation",
+            }
+            else None
+        )
+        presentation_intent = document_presentation or (
+            "simple_explanation" if simple_language else "language_rerender"
+        )
+        return planned({
+            "intent": presentation_intent,
+            "service_type": service_type,
+            "next_step": "knowledge",
+        })
     if (
-        result.intent == "unknown"
-        and result.service_type != "unknown"
+        previous_intent
+        in {"inspect_upload", "simple_document_explanation", "document_presentation"}
+        and result.service_type == "unknown"
+        and result.intent in {"unknown", "general_information", "inspect_upload"}
+        and result.next_step in {"knowledge", "clarify"}
+    ):
+        return planned({
+            "intent": "inspect_upload",
+            "service_type": "unknown",
+            "next_step": "knowledge",
+        })
+    if (
+        state.get("uploaded_files")
+        and result.next_step in {"knowledge", "clarify"}
+        and result.intent in {"unknown", "inspect_upload", "general_inquiry"}
         and is_upload_inspection_request(state["user_input"])
     ):
-        return {
+        return planned({
             "intent": "inspect_upload",
             "service_type": result.service_type,
             "next_step": "knowledge",
-        }
+        })
     if is_service_journey_goal(result.intent) and (
         result.next_step == "action"
         or result.intent in {"service_journey", "start_service_journey"}
     ):
-        return {
+        return planned({
             "intent": "service_journey",
             "service_type": result.service_type,
             "next_step": "knowledge",
-        }
+        })
     if is_journey_request(result.intent, state["user_input"]):
-        return {
+        return planned({
             "intent": "journey_summary",
             "service_type": (
                 previous_service
@@ -104,7 +171,7 @@ def _planner_node(state: PakAssistState) -> dict:
                 else result.service_type
             ),
             "next_step": "action",
-        }
+        })
     fallback_intent = _contextual_appointment_intent(state)
     appointment_intent = (
         result.intent
@@ -112,7 +179,7 @@ def _planner_node(state: PakAssistState) -> dict:
         else fallback_intent if result.intent == "unknown" else None
     )
     if appointment_intent:
-        return {
+        return planned({
             "intent": appointment_intent,
             "service_type": (
                 previous_service
@@ -121,7 +188,7 @@ def _planner_node(state: PakAssistState) -> dict:
                 else result.service_type
             ),
             "next_step": "action",
-        }
+        })
     if (
         result.service_type == "unknown"
         and previous_service not in {None, "", "unknown"}
@@ -131,16 +198,16 @@ def _planner_node(state: PakAssistState) -> dict:
         )
     ):
         checklist_request = is_checklist_request(result.intent, state["user_input"])
-        return {
+        return planned({
             "intent": "requirements_checklist" if checklist_request else "fee_lookup",
             "service_type": previous_service,
             "next_step": "knowledge",
-        }
-    return {
+        })
+    return planned({
         "intent": result.intent,
         "service_type": result.service_type,
         "next_step": result.next_step,
-    }
+    })
 
 
 def _knowledge_node(state: PakAssistState, config: RunnableConfig) -> dict:
@@ -162,11 +229,22 @@ def _action_node(state: PakAssistState) -> dict:
 
 def _clarification_node(state: PakAssistState) -> dict:
     """Ask for clarification when the request cannot be routed safely."""
-    return {"response": "Please clarify which government service you need."}
+    language = state.get("preferred_language", "english")
+    if state.get("intent") == "missing_presentation_context":
+        return {"response": message("presentation_context_required", language)}
+    return {"response": message("clarify_service", language)}
 
 
 def _route_after_planner(state: PakAssistState) -> str:
     """Select a downstream node from the Planner's validated decision."""
+    if state["intent"] in {
+        "inspect_upload",
+        "simple_explanation",
+        "simple_document_explanation",
+        "document_presentation",
+        "language_rerender",
+    } and state["next_step"] == "knowledge":
+        return "knowledge"
     if state["intent"] == "unknown" or state["service_type"] == "unknown":
         return "clarification"
     if state["next_step"] == "knowledge":

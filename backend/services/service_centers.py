@@ -18,6 +18,9 @@ _DATASET_FILES = {
 _LOCATION_PATTERN = re.compile(
     r"\b(?:in|near|at|around)\s+([a-z][a-z .'-]*?)(?=[?.!,;]|$)", re.IGNORECASE
 )
+_ROMAN_URDU_LOCATION_PATTERN = re.compile(
+    r"\b([a-z][a-z .'-]*?)\s+mein\b", re.IGNORECASE
+)
 _LOCATION_STOP_WORDS = {
     "a",
     "an",
@@ -31,6 +34,17 @@ _LOCATION_STOP_WORDS = {
     "passport",
     "service",
     "the",
+}
+_URDU_LOCATION_ALIASES = {
+    "کراچی": "Karachi",
+    "لاہور": "Lahore",
+    "اسلام آباد": "Islamabad",
+    "راولپنڈی": "Rawalpindi",
+    "اٹک": "Attock",
+    "پشاور": "Peshawar",
+    "کوئٹہ": "Quetta",
+    "ملتان": "Multan",
+    "فیصل آباد": "Faisalabad",
 }
 
 
@@ -67,6 +81,21 @@ def _record_text(record: dict[str, Any]) -> str:
 
 
 def _extract_location(query: str, records: tuple[dict[str, Any], ...]) -> str | None:
+    for urdu_name, dataset_name in _URDU_LOCATION_ALIASES.items():
+        if urdu_name in query:
+            return dataset_name
+
+    roman_match = _ROMAN_URDU_LOCATION_PATTERN.search(query)
+    if roman_match:
+        candidate = roman_match.group(1).strip()
+        words = [
+            word
+            for word in candidate.split()
+            if word.casefold() not in _LOCATION_STOP_WORDS
+        ]
+        if words:
+            return " ".join(words)
+
     match = _LOCATION_PATTERN.search(query)
     if match:
         candidate = match.group(1).strip()
@@ -118,4 +147,3 @@ def lookup_service_centers(
         location=location,
         centers=matches[:limit],
     )
-

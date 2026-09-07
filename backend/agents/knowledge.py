@@ -17,6 +17,7 @@ calling explicitly disabled.
 """
 
 import os
+import re
 from pathlib import Path
 from typing import List
 
@@ -25,20 +26,25 @@ from backend.rag.loader import RagDocument
 from backend.rag.multimodal import extract_text_from_image, extract_text_from_pdf
 from backend.rag.retriever import Retriever, RetrievedChunk
 from backend.services.checklist_builder import (
-    CHECKLIST_NOT_FOUND_MESSAGE,
     CHECKLIST_SYSTEM_PROMPT,
     checklist_retrieval_query,
     is_checklist_request,
     select_requirement_chunks,
 )
 from backend.services.fee_lookup import (
-    FEE_NOT_FOUND_MESSAGE,
     FEE_SYSTEM_PROMPT,
     fee_retrieval_query,
     is_fee_request,
     select_fee_chunks,
 )
 from backend.services.journey import update_journey
+from backend.services.language import generation_instruction, message
+from backend.services.verification import (
+    verify_document_answer,
+    verify_fee_sources,
+    verify_journey_transition,
+    verify_requirement_sources,
+)
 
 NO_CONTEXT_MESSAGE = (
     "I couldn't find reliable information for this request in the current "
@@ -48,21 +54,32 @@ UPLOAD_SESSION_MESSAGE = (
     "I couldn't access the uploaded content because this request has no valid "
     "session context."
 )
+UPLOAD_REQUIRED_MESSAGE = (
+    "Please upload or provide the document you want me to inspect."
+)
 
 _UPLOAD_MARKERS = ("upload", "uploaded")
-_UPLOAD_REFERENCES = (
-    "this image",
-    "this document",
-    "this file",
-    "this pdf",
-    "this photo",
-    "this screenshot",
+_UPLOAD_CONTENT_NOUNS = (
+    "image",
+    "document",
+    "file",
+    "pdf",
+    "photo",
+    "screenshot",
+    "notice",
+    "form",
+    "letter",
 )
 _UPLOAD_INSPECTION_TERMS = (
     "visible",
+    "inspect",
     "read",
-    "information",
     "explain",
+    "summarize",
+    "summarise",
+    "identify",
+    "extract",
+    "describe",
     "tell me",
     "what does",
     "what is in",
@@ -204,11 +221,13 @@ def _call_gemini(
 def is_upload_inspection_request(query: str) -> bool:
     """Identify requests to interpret user-provided image/document content."""
     text = query.casefold()
-    has_upload_reference = any(marker in text for marker in _UPLOAD_MARKERS) or any(
-        reference in text for reference in _UPLOAD_REFERENCES
+    has_upload_reference = any(
+        re.search(rf"\b{re.escape(term)}\b", text)
+        for term in (*_UPLOAD_MARKERS, *_UPLOAD_CONTENT_NOUNS)
     )
     return has_upload_reference and any(
-        term in text for term in _UPLOAD_INSPECTION_TERMS
+        re.search(rf"\b{re.escape(term)}\b", text)
+        for term in _UPLOAD_INSPECTION_TERMS
     )
 
 
@@ -240,8 +259,15 @@ def knowledge_agent(
 
     intent = state.get("intent", "")
     service_type = state.get("service_type", "")
-    checklist_mode = is_checklist_request(intent, query)
-    fee_mode = is_fee_request(intent, query)
+    preferred_language = state.get("preferred_language", "english")
+    simple_language = bool(state.get("simple_language"))
+    document_mode = intent in {
+        "inspect_upload",
+        "simple_document_explanation",
+        "document_presentation",
+    }
+    checklist_mode = not document_mode and is_checklist_request(intent, query)
+    fee_mode = not document_mode and is_fee_request(intent, query)
 
     retrieval_query = query
     top_k = None
@@ -251,6 +277,12 @@ def knowledge_agent(
     elif fee_mode:
         retrieval_query = fee_retrieval_query(service_type, query)
         top_k = 20
+    elif intent in {"simple_explanation", "language_rerender"} and state.get(
+        "response"
+    ):
+        retrieval_query = (
+            f"{service_type.replace('_', ' ')} {state['response']} {query}"
+        )
 
     trusted_mode = checklist_mode or fee_mode
     chunks = retriever.retrieve(
@@ -260,12 +292,19 @@ def knowledge_agent(
         thread_id=thread_id,
         prefer_user_files=(
             not trusted_mode
-            and (bool(uploaded_files) or upload_inspection)
+            and (bool(uploaded_files) or upload_inspection or document_mode)
         ),
     )
 
+    if document_mode:
+        chunks = [chunk for chunk in chunks if chunk.origin == "user_upload"]
+
     if not chunks:
-        state["response"] = NO_CONTEXT_MESSAGE
+        state["response"] = (
+            message("upload_required", preferred_language)
+            if document_mode
+            else message("no_context", preferred_language)
+        )
         state["sources"] = []
         return state
 
@@ -274,8 +313,8 @@ def knowledge_agent(
 
     if checklist_mode:
         source_chunks = select_requirement_chunks(chunks, service_type)
-        if not source_chunks:
-            state["response"] = CHECKLIST_NOT_FOUND_MESSAGE
+        if not verify_requirement_sources(source_chunks, service_type):
+            state["response"] = message("checklist_not_found", preferred_language)
             state["sources"] = []
             return state
         system_prompt = CHECKLIST_SYSTEM_PROMPT
@@ -283,20 +322,32 @@ def knowledge_agent(
         matching_fee_chunks, reliable_fee_chunks = select_fee_chunks(
             chunks, service_type
         )
-        if not reliable_fee_chunks:
-            state["response"] = FEE_NOT_FOUND_MESSAGE
+        if not verify_fee_sources(reliable_fee_chunks, service_type):
+            state["response"] = message("fee_not_found", preferred_language)
             state["sources"] = _chunks_to_source_refs(matching_fee_chunks)
             return state
         source_chunks = reliable_fee_chunks
         system_prompt = FEE_SYSTEM_PROMPT
 
+    if preferred_language != "english" or simple_language:
+        system_prompt += "\n\nPresentation:\n" + generation_instruction(
+            preferred_language, simple=simple_language
+        )
+
     context_block = _build_context_block(source_chunks)
     answer = _call_gemini(query, context_block, system_prompt=system_prompt)
 
-    state["response"] = answer or NO_CONTEXT_MESSAGE
+    if document_mode and answer and not verify_document_answer(answer, source_chunks):
+        state["response"] = message("verification_failed", preferred_language)
+        state["sources"] = _chunks_to_source_refs(source_chunks)
+        return state
+
+    state["response"] = answer or message("no_context", preferred_language)
     state["sources"] = _chunks_to_source_refs(source_chunks)
-    if answer and checklist_mode:
+    if answer and checklist_mode and verify_journey_transition(
+        "requirements", "reviewed", True
+    ):
         state["journeys"] = update_journey(state, "requirements", "reviewed")
-    elif answer and fee_mode:
+    elif answer and fee_mode and verify_journey_transition("fees", "reviewed", True):
         state["journeys"] = update_journey(state, "fees", "reviewed")
     return state

@@ -56,6 +56,9 @@ determine:
 - service_type: the specific government service involved (e.g. "driving_license", \
 "passport"). Use "unknown" if it isn't clearly implied by the message — never \
 invent or guess a specific service.
+    Understand natural Urdu and Roman Urdu requests such as "mujhe passport
+    banwana hai", "documents kya chahiye", "fee kitni hai", "office kahan hai",
+    and "appointment book karni hai" using the same intents as English.
 - next_step: which downstream capability this should eventually go to.
   - "knowledge"   - the user wants information or guidance about a service.
     Requirements/checklist questions and fee/cost questions must use this route.
@@ -64,8 +67,10 @@ invent or guess a specific service.
     Broad goals such as applying for, getting, or renewing a supported service
     are journey guidance, not executable actions. Use intent "service_journey"
     and next_step "knowledge".
-    Requests to inspect, read, explain, or describe information visible in an
-    uploaded image/document also use "knowledge". Use intent "inspect_upload".
+    Requests to inspect, read, explain, summarize, identify, extract, or describe
+    an uploaded image, document, notice, form, letter, or screenshot also use
+    "knowledge". Use intent "inspect_upload". The service_type may remain
+    "unknown" when the user is only asking what the uploaded content says.
   - "action"      - the user wants a supported executable operation, such as
     locating a service center/office. For a service-center lookup, use intent
     "service_center_lookup". For prototype appointment availability, use intent

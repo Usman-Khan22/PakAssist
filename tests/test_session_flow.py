@@ -101,7 +101,7 @@ def test_ambiguous_request_still_uses_clarification(mock_planner):
     assert result["response"] == "Please clarify which government service you need."
 
 
-@patch("main.build_graph")
+@patch("backend.main.build_graph")
 def test_exit_and_quit_end_cli_without_invoking_graph(mock_build_graph):
     graph = MagicMock()
     mock_build_graph.return_value = graph
@@ -116,7 +116,7 @@ def test_exit_and_quit_end_cli_without_invoking_graph(mock_build_graph):
     assert quit_output == ["Goodbye."]
 
 
-@patch("main.build_graph")
+@patch("backend.main.build_graph")
 def test_cli_reuses_one_thread_id_for_all_turns(mock_build_graph):
     graph = MagicMock()
     graph.invoke.side_effect = [

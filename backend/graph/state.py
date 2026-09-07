@@ -34,3 +34,5 @@ class PakAssistState(TypedDict, total=False):
     appointment_date: Optional[str]
     booked_slots: Optional[List[str]]
     journeys: Dict[str, JourneyProgress]
+    preferred_language: str
+    simple_language: bool
