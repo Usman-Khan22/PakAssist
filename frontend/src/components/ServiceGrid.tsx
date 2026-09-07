@@ -1,29 +1,30 @@
+import { copy, type LocalizedText } from "../translations";
 import { type Service } from "../data";
 import CategoryCard from "./CategoryCard";
 import ServiceCard from "./ServiceCard";
 
-const categoryData = [
+const categoryData: [LocalizedText, LocalizedText, string][] = [
   [
-    "Passport Services",
-    "Your passport journey, clearly explained.",
-    "Passport",
+    copy.passportServices,
+    copy.yourPassportJourneyClearlyExplained,
+    copy.passport.en,
   ],
-  ["CNIC / NADRA", "Identity services without the confusion.", "CNIC/NADRA"],
-  ["Driving License", "From learner permit to renewal.", "Driving License"],
+  [copy.cnicNadra, copy.identityServicesWithoutTheConfusion, copy.cnicnadra.en],
+  [copy.drivingLicense, copy.fromLearnerPermitToRenewal, copy.drivingLicense.en],
   [
-    "Vehicle Registration",
-    "Transfer, tax and registration guidance.",
-    "Vehicle Registration",
-  ],
-  [
-    "Tax & FBR Assistance",
-    "Understand filing without the jargon.",
-    "Tax & Revenue",
+    copy.vehicleRegistration,
+    copy.transferTaxAndRegistrationGuidance,
+    copy.vehicleRegistration.en,
   ],
   [
-    "Domicile & Certificates",
-    "The documents your next step needs.",
-    "Documents",
+    copy.taxFbrAssistance,
+    copy.understandFilingWithoutTheJargon,
+    copy.taxRevenue.en,
+  ],
+  [
+    copy.domicileCertificates,
+    copy.theDocumentsYourNextStepNeeds,
+    copy.documents.en,
   ],
 ];
 
@@ -34,7 +35,7 @@ export default function ServiceGrid({ services }: { services?: Service[] }) {
     </div>
   ) : (
     <div className="category-grid">
-      {categoryData.map((item) => <CategoryCard key={item[0]} item={item} />)}
+      {categoryData.map((item) => <CategoryCard key={item[0].en} item={item} />)}
     </div>
   );
 }

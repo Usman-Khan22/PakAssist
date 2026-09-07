@@ -1,41 +1,36 @@
+import { useLanguage } from "../language";
 import { Link } from "react-router-dom";
 import Logo from "./Logo";
 
 export default function Footer() {
+  const { t } = useLanguage();
   return (
     <footer>
       <div className="footer-grid">
         <div>
           <Logo footer />
-          <p className="footer-tag">
-            Making civic services simple,
-            <br />
-            one question at a time.
-          </p>
+          <p className="footer-tag"> {t.makingCivicServicesSimple} <br /> {t.oneQuestionAtATime} </p>
         </div>
         <div>
-          <small>EXPLORE</small>
-          <Link to="/services">All Services</Link>
-          <Link to="/chat">Ask PakAssist</Link>
-          <Link to="/how-it-works">How it works</Link>
+          <small> {t.explore} </small>
+          <Link to="/services"> {t.allServices} </Link>
+          <Link to="/chat"> {t.askPakassist} </Link>
+          <Link to="/how-it-works"> {t.howItWorks} </Link>
         </div>
         <div>
-          <small>COMPANY</small>
-          <Link to="/about">About us</Link>
-          <a href="/#sources">Trust & safety</a>
-          <a href="#contact">Contact</a>
+          <small> {t.company} </small>
+          <Link to="/about"> {t.aboutUs} </Link>
+          <a href="/#sources"> {t.trustSafety} </a>
+          <a href="#contact"> {t.contact} </a>
         </div>
         <div className="footer-note">
-          <small>IMPORTANT</small>
-          <p>
-            PakAssist is an independent civic-tech guide. Always verify final
-            details on official .gov.pk portals.
-          </p>
+          <small> {t.important} </small>
+          <p> {t.pakassistIsAnIndependentCivictechGuideAlwaysVerifyFinal} </p>
         </div>
       </div>
       <div className="footer-bottom">
-        <span>© 2025 PakAssist. Built by citizens, for citizens.</span>
-        <span>Terms&nbsp;&nbsp; Privacy&nbsp;&nbsp; Security</span>
+        <span> {t.value2025PakassistBuiltByCitizensForCitizens} </span>
+        <span>{t.termsprivacysecurity}</span>
       </div>
     </footer>
   );

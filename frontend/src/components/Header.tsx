@@ -1,16 +1,19 @@
+import { copy } from "../translations";
+import { useLanguage } from "../language";
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import LanguageSwitcher from "./LanguageSwitcher";
 
 const navItems = [
-  ["Services", "/services"],
-  ["How it works", "/how-it-works"],
-  ["Official sources", "/#sources"],
-  ["About", "/about"],
-];
+  [copy.services, "/services"],
+  [copy.howItWorks, "/how-it-works"],
+  [copy.officialSources, "/#sources"],
+  [copy.about, "/about"],
+] as const;
 
 export default function Header() {
+  const { t, localize } = useLanguage();
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const toggle = useRef<HTMLButtonElement>(null);
@@ -29,24 +32,24 @@ export default function Header() {
     }}>
       <div className="container header-inner">
         <Link to="/" className="brand ltr-isolate" lang="en">PakAssist</Link>
-        <nav id="primary-navigation" className="desktop-nav" aria-label="Main navigation">
+        <nav id="primary-navigation" className="desktop-nav" aria-label={t.mainNavigation}>
           {navItems.map(([label, path]) => (
             path.includes("#") ? <Link key={path} to={path} onClick={() => {
               setOpen(false);
               if (location.pathname === "/") document.getElementById("sources")?.scrollIntoView();
-            }}>{label}</Link> : <NavLink key={path} to={path} onClick={() => setOpen(false)}>
-              {label}
+            }}>{localize(label)}</Link> : <NavLink key={path} to={path} onClick={() => setOpen(false)}>
+              {localize(label)}
             </NavLink>
           ))}
         </nav>
         <div className="header-actions">
           <LanguageSwitcher />
-          <Link className="primary-button" to="/chat" onClick={() => setOpen(false)}>Ask PakAssist</Link>
+          <Link className="primary-button" to="/chat" onClick={() => setOpen(false)}> {t.askPakassist} </Link>
           <button
             ref={toggle}
             type="button"
             className="header-menu-toggle"
-            aria-label={open ? "Close navigation" : "Open navigation"}
+            aria-label={localize(open ? copy.closeNavigation : copy.openNavigation)}
             aria-expanded={open}
             aria-controls="primary-navigation"
             onClick={() => setOpen(!open)}

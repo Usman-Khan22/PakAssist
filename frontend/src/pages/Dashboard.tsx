@@ -1,13 +1,16 @@
+import { copy, type LocalizedText } from "../translations";
+import { useLanguage } from "../language";
 import { useState } from "react";
 import { ArrowRight, Check, ChevronRight, FileText } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
 export default function Dashboard() {
-  const [notice, setNotice] = useState("");
-  const action = (text: string) => {
-    setNotice(`${text} is a mock action for now.`);
-    setTimeout(() => setNotice(""), 2800);
+  const { t, language, localize } = useLanguage();
+  const [notice, setNotice] = useState<LocalizedText | null>(null);
+  const action = (text: LocalizedText) => {
+    setNotice(text);
+    setTimeout(() => setNotice(null), 2800);
   };
   return (
     <>
@@ -15,23 +18,23 @@ export default function Dashboard() {
       <main>
         <section className="dashboard-head">
           <div className="container">
-            <small className="eyebrow">YOUR PAKASSIST</small>
-            <h1>Welcome back, Ahmed</h1>
-            <p>Here’s a quick view of your civic service journey.</p>
+            <small className="eyebrow"> {t.yourPakassist} </small>
+            <h1> {t.welcomeBackAhmed} </h1>
+            <p> {t.heresAQuickViewOfYourCivicServiceJourney} </p>
           </div>
         </section>
         <section className="section dashboard-section">
           <div className="container">
             <div className="dash-stats">
-              {[
-                ["3", "Active Applications", "Across 2 services"],
-                ["5 / 8", "Documents Prepared", "Passport Renewal"],
-                ["1", "Upcoming Appointment", "Islamabad · 18 Jun"],
-              ].map((x) => (
-                <div className="dash-stat" key={x[1]}>
-                  <span>{x[0]}</span>
-                  <b>{x[1]}</b>
-                  <small>{x[2]}</small>
+              {([
+                ["3", copy.activeApplications, copy.across2Services],
+                ["5 / 8", copy.documentsPrepared, copy.passportRenewal],
+                ["1", copy.upcomingAppointment, copy.islamabad18Jun],
+              ] as const).map((x) => (
+                <div className="dash-stat" key={localize(x[1])}>
+                  <span>{localize(x[0])}</span>
+                  <b>{localize(x[1])}</b>
+                  <small>{localize(x[2])}</small>
                 </div>
               ))}
             </div>
@@ -39,48 +42,47 @@ export default function Dashboard() {
               <div>
                 <div className="panel-heading">
                   <div>
-                    <small>IN PROGRESS</small>
-                    <h2>Your applications</h2>
+                    <small> {t.inProgress} </small>
+                    <h2> {t.yourApplications} </h2>
                   </div>
-                  <button onClick={() => action("Track application")}>
-                    View all <ArrowRight size={15} />
+                  <button onClick={() => action(copy.trackApplication)}> {t.viewAll} <ArrowRight size={15} />
                   </button>
                 </div>
                 <div className="applications">
                   {[
                     [
-                      "Passport Renewal",
+                      copy.passportRenewal,
                       "PA-20481",
-                      "Updated 2 hours ago",
-                      "In Progress",
+                      copy.updated2HoursAgo,
+                      copy.inProgress2,
                     ],
                     [
-                      "CNIC Renewal",
+                      copy.cnicRenewal,
                       "PA-20392",
-                      "Updated 3 days ago",
-                      "Under Review",
+                      copy.updated3DaysAgo,
+                      copy.underReview,
                     ],
                     [
-                      "Domicile Certificate",
+                      copy.domicileCertificate,
                       "PA-19833",
-                      "Completed 12 May",
-                      "Completed",
+                      copy.completed12May,
+                      copy.completed,
                     ],
                   ].map((x) => (
-                    <div className="application-row" key={x[1]}>
+                    <div className="application-row" key={localize(x[1])}>
                       <span className="app-icon">
                         <FileText size={18} />
                       </span>
                       <div>
-                        <b>{x[0]}</b>
+                        <b>{localize(x[0])}</b>
                         <small>
-                          {x[1]} · {x[2]}
+                          {localize(x[1])} · {localize(x[2])}
                         </small>
                       </div>
                       <span
-                        className={`badge ${x[3].toLowerCase().replace(" ", "-")}`}
+                        className={`badge ${(typeof x[3] === "string" ? x[3] : x[3].en).toLowerCase().replace(" ", "-")}`}
                       >
-                        {x[3]}
+                        {localize(x[3])}
                       </span>
                       <ChevronRight size={17} />
                     </div>
@@ -88,10 +90,10 @@ export default function Dashboard() {
                 </div>
                 <div className="panel-heading checklist-heading">
                   <div>
-                    <small>DOCUMENT CHECKLIST</small>
-                    <h2>Passport Renewal</h2>
+                    <small> {t.documentChecklist} </small>
+                    <h2> {t.passportRenewal} </h2>
                   </div>
-                  <span>5 of 8 ready</span>
+                  <span> {t.value5Of8Ready} </span>
                 </div>
                 <div className="progress">
                   <span style={{ width: "62.5%" }} />
@@ -99,28 +101,26 @@ export default function Dashboard() {
               </div>
               <aside className="dash-side">
                 <div className="appointment">
-                  <small>NEXT APPOINTMENT</small>
-                  <h3>Passport Office</h3>
-                  <p>Blue Area, Islamabad</p>
-                  <b>18 June 2025 · 10:30 AM</b>
+                  <small> {t.nextAppointment} </small>
+                  <h3> {t.passportOffice} </h3>
+                  <p> {t.blueAreaIslamabad} </p>
+                  <b> {t.value18June20251030Am} </b>
                   <div>
-                    <button onClick={() => action("Reschedule")}>
-                      Reschedule
-                    </button>
-                    <button onClick={() => action("Cancel")}>Cancel</button>
+                    <button onClick={() => action(copy.reschedule)}> {t.reschedule} </button>
+                    <button onClick={() => action(copy.cancel)}> {t.cancel} </button>
                   </div>
                 </div>
                 <div className="quick">
-                  <small>QUICK ACTIONS</small>
+                  <small> {t.quickActions} </small>
                   {[
-                    ["Ask PakAssist AI", "Open chat"],
-                    ["Track application", "Register"],
-                    ["Book appointment", "Schedule"],
-                    ["Saved documents", "Access"],
+                    [copy.askPakassistAi, copy.openChat],
+                    [copy.trackApplication, copy.register],
+                    [copy.bookAppointment, copy.schedule],
+                    [copy.savedDocuments, copy.access],
                   ].map((x) => (
-                    <button onClick={() => action(x[0])} key={x[0]}>
-                      <span>{x[1]}</span>
-                      <b>{x[0]}</b>
+                    <button onClick={() => action(x[0])} key={localize(x[0])}>
+                      <span>{localize(x[1])}</span>
+                      <b>{localize(x[0])}</b>
                       <ArrowRight size={15} />
                     </button>
                   ))}
@@ -133,7 +133,7 @@ export default function Dashboard() {
       {notice && (
         <div className="toast">
           <Check size={16} />
-          {notice}
+          {localize(copy.actionIsAMockActionForNow[language].replace('{action}', notice[language]))}
         </div>
       )}
       <Footer />

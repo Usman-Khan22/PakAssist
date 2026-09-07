@@ -1,25 +1,27 @@
+import { categoryLabels } from "../data";
+import { copy } from "../translations";
+import { useLanguage } from "../language";
 import { useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Mic, Search } from "lucide-react";
 import { services } from "../data";
 
 const suggestions = [
-  "Renew CNIC online",
-  "Passport document checklist",
-  "International driving permit",
-  "FBR tax filer guide",
+  copy.renewCnicOnline,
+  copy.passportDocumentChecklist,
+  copy.internationalDrivingPermit,
+  copy.fbrTaxFilerGuide,
 ];
 
-export default function HeroSearch({ urdu = false }: { urdu?: boolean }) {
-  const prompt = urdu
-    ? "آپ کس سرکاری خدمت کے بارے میں جاننا چاہتے ہیں؟"
-    : "Ask about any government service...";
+export default function HeroSearch() {
+  const { t, language, localize } = useLanguage();
+  const prompt = copy.askAboutAnyGovernmentService;
   const [text, setText] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const listId = useId();
   const query = text.trim().toLowerCase();
-  const matches = query ? services.filter(service => service.title.toLowerCase().includes(query)).slice(0, 6) : [];
+  const matches = query ? services.filter(service => `${service.title.en} ${service.title.ur}`.toLowerCase().includes(query)).slice(0, 6) : [];
   const expanded = open && query.length > 0;
   const navigate = useNavigate();
   const submit = (e: React.FormEvent) => {
@@ -66,46 +68,45 @@ export default function HeroSearch({ urdu = false }: { urdu?: boolean }) {
               });
             }
           }}
-          placeholder={prompt}
-          aria-label={prompt}
-          data-localized
+          placeholder={localize(prompt)}
+          aria-label={localize(prompt)}
         />
         <button
           className="voice-search"
           type="button"
           disabled
-          aria-label="Voice search coming soon"
-          title="Voice search coming soon"
+          aria-label={t.voiceSearchComingSoon}
+          title={t.voiceSearchComingSoon}
         >
           <Mic size={18} />
         </button>
-        <button aria-label="Search">
+        <button aria-label={t.search}>
           <ArrowRight />
         </button>
       </form>
       {expanded && (
-        <div className="search-suggestions" data-localized>
-          <ul id={listId} role="listbox" aria-label={urdu ? "خدمات کی تجاویز" : "Suggested services"}>
+        <div className="search-suggestions">
+          <ul id={listId} role="listbox" aria-label={localize(copy.suggestedServices)}>
             {matches.map((service, index) => (
               <li key={service.slug} id={`${listId}-${index}`} role="option" aria-selected={active === index}
                 onPointerDown={(event) => event.preventDefault()}
                 onClick={() => { setOpen(false); navigate(`/services/${service.slug}`); }}>
-                <bdi lang="en">{service.title}</bdi>
-                <small><bdi lang="en">{service.authority} · {service.category}</bdi></small>
+                <bdi lang={language}>{localize(service.title[language])}</bdi>
+                <small><bdi lang={language}>{localize(service.authority[language])} · {localize(categoryLabels[service.category])}</bdi></small>
               </li>
             ))}
           </ul>
-          {!matches.length && <p role="status">{urdu ? "کوئی متعلقہ خدمت نہیں ملی۔ پاک اسسٹ سے پوچھنے کے لیے انٹر دبائیں۔" : "No matching service found. Press Enter to ask PakAssist."}</p>}
+          {!matches.length && <p role="status">{t.noMatchingServiceFoundPressEnterToAskPakassist}</p>}
         </div>
       )}
       </div>
       <div className="chips">
         {suggestions.map((x) => (
           <button
-            key={x}
-            onClick={() => navigate(`/chat?query=${encodeURIComponent(x)}`)}
+            key={x.en}
+            onClick={() => navigate(`/chat?query=${encodeURIComponent(x.en)}`)}
           >
-            {x}
+            {localize(x)}
           </button>
         ))}
       </div>

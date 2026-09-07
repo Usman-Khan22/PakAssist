@@ -1,7 +1,10 @@
+import type { LocalizedText } from "../translations";
+import { useLanguage } from "../language";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, BookOpen, CalendarDays, CreditCard, FileText, Landmark, ShieldCheck } from "lucide-react";
 
-export default function CategoryCard({ item }: { item: string[] }) {
+export default function CategoryCard({ item }: { item: [LocalizedText, LocalizedText, string] }) {
+  const { localize } = useLanguage();
   const navigate = useNavigate();
   const icons: Record<string, typeof FileText> = {
     Passport: BookOpen,
@@ -23,8 +26,8 @@ export default function CategoryCard({ item }: { item: string[] }) {
         <Icon size={19} />
       </span>
       <span>
-        <b>{item[0]}</b>
-        <small>{item[1]}</small>
+        <b>{localize(item[0])}</b>
+        <small>{localize(item[1])}</small>
       </span>
       <ArrowRight size={17} />
     </button>

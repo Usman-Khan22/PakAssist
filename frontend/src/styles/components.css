@@ -1838,17 +1838,20 @@ footer {
     margin-top: var(--space-5);
   }
   .detail-head .stepper {
-    overflow: auto;
-    width: 100vw;
-    padding-left: var(--space-4);
-    padding-right: var(--space-4);
+    padding-inline: 0;
   }
-  .stepper {
-    width: 720px;
+  .stepper,
+  .detail-head .stepper {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: var(--space-4);
     margin-top: var(--space-8);
   }
-  .detail-head .stepper {
-    width: 720px;
+  .step {
+    flex: 0 1 auto;
+  }
+  .step i {
+    min-width: var(--space-4);
   }
   .document-grid {
     grid-template-columns: 1fr;

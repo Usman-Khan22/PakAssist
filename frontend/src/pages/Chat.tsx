@@ -1,46 +1,51 @@
+import { copy, type LocalizedText } from "../translations";
+import { useLanguage, authoredText } from "../language";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowRight, ClipboardCheck, FileText, Globe2, Search, Sparkles } from "lucide-react";
+import { ArrowRight, ClipboardCheck, FileText, Search, Sparkles } from "lucide-react";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 import Logo from "../components/Logo";
 import Button from "../components/Button";
 import Header from "../components/Header";
 import AssistantResponse from "../components/AssistantResponse";
 
-type ChatMsg = { from: "user" | "assistant"; text: string };
+type ChatMsg = { from: "user" | "assistant"; text: string | LocalizedText };
 
 export default function Chat() {
+  const { t, localize } = useLanguage();
   const [params] = useSearchParams();
-  const initial = params.get("query");
+  const query = params.get("query");
+  const initial = query ? authoredText(query) : null;
   const [messages, setMessages] = useState<ChatMsg[]>(
     initial
       ? [
           { from: "user", text: initial },
           {
             from: "assistant",
-            text: "Here is a clear starting point for your question.",
+            text: copy.hereIsAClearStartingPointForYourQuestion,
           },
         ]
       : [
           {
             from: "user",
-            text: "What documents do I need to renew my passport?",
+            text: copy.whatDocumentsDoINeedToRenewMyPassport,
           },
           {
             from: "assistant",
-            text: "For a passport renewal, you’ll generally need these items ready:",
+            text: copy.forAPassportRenewalYoullGenerallyNeedTheseItems,
           },
         ],
   );
   const [input, setInput] = useState("");
-  const [title, setTitle] = useState(initial || "Passport Renewal");
-  const send = (text = input.trim()) => {
+  const [title, setTitle] = useState<string | LocalizedText>(initial || copy.passportRenewal);
+  const send = (text: string | LocalizedText = input.trim()) => {
     if (!text) return;
     setMessages([
       ...messages,
       { from: "user", text },
       {
         from: "assistant",
-        text: "Here is a practical guide based on the information available. I’ll keep the next steps clear and actionable.",
+        text: copy.hereIsAPracticalGuideBasedOnTheInformation,
       },
     ]);
     setTitle(text);
@@ -55,51 +60,44 @@ export default function Chat() {
           <Button
             onClick={() => {
               setMessages([]);
-              setTitle("New conversation");
+              setTitle(copy.newConversation);
             }}
-          >
-            New chat
-          </Button>
+          > {t.newChat} </Button>
           <div className="sidebar-search">
-            <Search size={15} /> Search chats
-          </div>
-          <small>PINNED TOPICS</small>
+            <Search size={15} /> {t.searchChats} </div>
+          <small> {t.pinnedTopics} </small>
           <Link to="/services/passport-renewal">
-            <FileText size={15} /> Passport renewal
-          </Link>
+            <FileText size={15} /> {t.passportRenewal2} </Link>
           <Link to="/services/cnic-renewal">
-            <ClipboardCheck size={15} /> CNIC renewal
-          </Link>
-          <small>RECENT CHATS</small>
-          <span className="chat-date">TODAY</span>
-          <button className="chat-history active">Passport Renewal</button>
-          <button className="chat-history">FBR tax filer guide</button>
-          <span className="chat-date">YESTERDAY</span>
-          <button className="chat-history">Learner permit requirements</button>
+            <ClipboardCheck size={15} /> {t.cnicRenewal2} </Link>
+          <small> {t.recentChats} </small>
+          <span className="chat-date"> {t.today} </span>
+          <button className="chat-history active"> {t.passportRenewal} </button>
+          <button className="chat-history"> {t.fbrTaxFilerGuide} </button>
+          <span className="chat-date"> {t.yesterday} </span>
+          <button className="chat-history"> {t.learnerPermitRequirements} </button>
         </aside>
         <section className="chat-main">
           <div className="chat-toolbar">
             <div>
-              <span className="online-dot" /> <b>{title}</b>
-              <small>AI Agent Active</small>
+              <span className="online-dot" /> <b>{localize(title)}</b>
+              <small> {t.aiAgentActive} </small>
             </div>
-            <button className="language">
-              <Globe2 size={14} /> EN / اردو
-            </button>
+            <LanguageSwitcher />
           </div>
           <div className="message-thread">
             {messages.length === 0 ? (
               <div className="chat-empty">
                 <Sparkles size={30} />
-                <h2>What can we help you navigate?</h2>
-                <p>Ask about a government service in plain language.</p>
+                <h2> {t.whatCanWeHelpYouNavigate} </h2>
+                <p> {t.askAboutAGovernmentServiceInPlainLanguage} </p>
               </div>
             ) : (
               messages.map((m, i) => (
-                <div className={`message ${m.from}`} key={`${m.text}-${i}`}>
+                <div className={`message ${m.from}`} key={i}>
                   {m.from === "assistant" && <span className="avatar">P</span>}
                   <div className="bubble">
-                    <p>{m.text}</p>
+                    <p>{localize(m.text)}</p>
                     {m.from === "assistant" && <AssistantResponse />}
                   </div>
                 </div>
@@ -107,14 +105,14 @@ export default function Chat() {
             )}
             {messages.length > 0 && (
               <div className="followups">
-                <span>Continue with</span>
+                <span> {t.continueWith} </span>
                 {[
-                  "Normal or Urgent?",
-                  "Adult or Minor?",
-                  "Islamabad or Other City?",
+                  copy.normalOrUrgent,
+                  copy.adultOrMinor,
+                  copy.islamabadOrOtherCity,
                 ].map((x) => (
-                  <button key={x} onClick={() => send(x)}>
-                    {x}
+                  <button key={x.en} onClick={() => send(x)}>
+                    {localize(x)}
                     <ArrowRight size={13} />
                   </button>
                 ))}
@@ -131,10 +129,10 @@ export default function Chat() {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a follow-up question..."
+              placeholder={t.askAFollowupQuestion}
             />
-            <span>Attachments coming soon</span>
-            <button aria-label="Send message">
+            <span> {t.attachmentsComingSoon} </span>
+            <button aria-label={t.sendMessage}>
               <ArrowRight />
             </button>
           </form>

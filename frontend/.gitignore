@@ -34,3 +34,7 @@ pnpm-debug.log*
 # Temporary files
 *.tmp
 *.temp
+
+# Local verification dependencies and package cache
+.verification/
+.npm-cache/

@@ -1,3 +1,5 @@
+import { copy } from "../translations";
+import { useLanguage } from "../language";
 import { Link } from "react-router-dom";
 import { ArrowRight, Gauge } from "lucide-react";
 import Header from "../components/Header";
@@ -5,40 +7,35 @@ import Footer from "../components/Footer";
 import SectionHeader from "../components/SectionHeader";
 
 export default function About() {
+  const { t, localize } = useLanguage();
     return (
       <>
         <Header />
         <main>
           <section className="page-band">
             <div className="container">
-              <small className="eyebrow">OUR IDENTITY</small>
-              <h1>About PakAssist</h1>
-              <p>
-                Building calmer, clearer pathways through everyday civic life.
-              </p>
+              <small className="eyebrow"> {t.ourIdentity} </small>
+              <h1> {t.aboutPakassist} </h1>
+              <p> {t.buildingCalmerClearerPathwaysThroughEverydayCivicLife} </p>
             </div>
           </section>
           <section className="section">
             <div className="container mission-grid">
               <div>
-                <small className="eyebrow">THE MISSION</small>
-                <h2>Bridging the gap between citizens and civic duties.</h2>
-                <p>
-                  PakAssist is open-source civic technology designed to make
-                  public service information easier to understand and act on, in
-                  English and Urdu.
-                </p>
+                <small className="eyebrow"> {t.theMission} </small>
+                <h2> {t.bridgingTheGapBetweenCitizensAndCivicDuties} </h2>
+                <p> {t.pakassistIsOpensourceCivicTechnologyDesignedToMakePublic} </p>
               </div>
               <div className="impact">
-                <small>OUR CIVIC IMPACT TARGETS</small>
+                <small> {t.ourCivicImpactTargets} </small>
                 {[
-                  "Protecting citizens from fraudulent brokers",
-                  "Democratic access in English & Urdu",
-                  "Reducing hours lost in administrative lookup",
+                  copy.protectingCitizensFromFraudulentBrokers,
+                  copy.democraticAccessInEnglishUrdu,
+                  copy.reducingHoursLostInAdministrativeLookup,
                 ].map((x, i) => (
-                  <div key={x}>
+                  <div key={localize(x)}>
                     <span>0{i + 1}</span>
-                    {x}
+                    {localize(x)}
                   </div>
                 ))}
               </div>
@@ -47,30 +44,30 @@ export default function About() {
           <section className="section cream">
             <div className="container">
               <SectionHeader
-                overline="THE EVERYDAY REALITY"
-                title="Civic tasks shouldn’t feel like detective work."
+                overline={t.theEverydayReality}
+                title={t.civicTasksShouldntFeelLikeDetectiveWork}
               />
               <div className="reality-grid">
                 {[
                   [
-                    "Scattered guidelines",
-                    "Information lives across too many offices and websites.",
+                    copy.scatteredGuidelines,
+                    copy.informationLivesAcrossTooManyOfficesAndWebsites,
                   ],
                   [
-                    "Unclear costs & challans",
-                    "Fees, timelines and requirements can be hard to compare.",
+                    copy.unclearCostsChallans,
+                    copy.feesTimelinesAndRequirementsCanBeHardToCompare,
                   ],
                   [
-                    "Exploitative agents",
-                    "Confusion creates space for avoidable middlemen.",
+                    copy.exploitativeAgents,
+                    copy.confusionCreatesSpaceForAvoidableMiddlemen,
                   ],
                 ].map((x) => (
-                  <div className="plain-card" key={x[0]}>
+                  <div className="plain-card" key={localize(x[0])}>
                     <span className="icon-tile">
                       <Gauge size={18} />
                     </span>
-                    <h3>{x[0]}</h3>
-                    <p>{x[1]}</p>
+                    <h3>{localize(x[0])}</h3>
+                    <p>{localize(x[1])}</p>
                   </div>
                 ))}
               </div>
@@ -79,28 +76,28 @@ export default function About() {
           <section className="section">
             <div className="container">
               <SectionHeader
-                overline="WHAT GUIDES US"
-                title="Useful first. Always honest."
+                overline={t.whatGuidesUs}
+                title={t.usefulFirstAlwaysHonest}
               />
               <div className="principles">
                 {[
                   [
-                    "Accurate Information",
-                    "We organize guidance and point you back to the official source.",
+                    copy.accurateInformation,
+                    copy.weOrganizeGuidanceAndPointYouBackToThe,
                   ],
                   [
-                    "Plain Language",
-                    "We remove jargon without removing the details that matter.",
+                    copy.plainLanguage,
+                    copy.weRemoveJargonWithoutRemovingTheDetailsThatMatter,
                   ],
                   [
-                    "Step-by-Step Guidance",
-                    "A clear next step is more useful than a wall of information.",
+                    copy.stepbystepGuidance,
+                    copy.aClearNextStepIsMoreUsefulThanA,
                   ],
                 ].map((x) => (
-                  <div key={x[0]}>
+                  <div key={localize(x[0])}>
                     <span>✦</span>
-                    <h3>{x[0]}</h3>
-                    <p>{x[1]}</p>
+                    <h3>{localize(x[0])}</h3>
+                    <p>{localize(x[1])}</p>
                   </div>
                 ))}
               </div>
@@ -109,19 +106,19 @@ export default function About() {
           <section className="section cream">
             <div className="container">
               <SectionHeader
-                overline="CIVIC ROADMAP"
-                title="Growing with the people we serve."
+                overline={t.civicRoadmap}
+                title={t.growingWithThePeopleWeServe}
               />
               <div className="roadmap">
                 {[
-                  "PHASE 1 — Advanced Urdu Engine",
-                  "PHASE 2 — WhatsApp Voice Assistant",
-                  "PHASE 3 — Interactive Booking Integration",
+                  copy.phase1AdvancedUrduEngine,
+                  copy.phase2WhatsappVoiceAssistant,
+                  copy.phase3InteractiveBookingIntegration,
                 ].map((x, i) => (
-                  <div key={x}>
+                  <div key={localize(x)}>
                     <span>0{i + 1}</span>
-                    <b>{x}</b>
-                    <small>{i === 0 ? "In progress" : "Planned next"}</small>
+                    <b>{localize(x)}</b>
+                    <small>{localize(i === 0 ? copy.inProgress3 : copy.plannedNext)}</small>
                   </div>
                 ))}
               </div>
@@ -129,15 +126,10 @@ export default function About() {
           </section>
           <section className="closing">
             <div>
-              <small>OPEN-SOURCE CIVIC TECHNOLOGY</small>
-              <h2>
-                Built by Citizens,
-                <br />
-                For Citizens.
-              </h2>
+              <small> {t.opensourceCivicTechnology} </small>
+              <h2> {t.builtByCitizens} <br /> {t.forCitizens} </h2>
             </div>
-            <Link to="/services" className="secondary-button">
-              Explore services <ArrowRight size={16} />
+            <Link to="/services" className="secondary-button"> {t.exploreServices} <ArrowRight size={16} />
             </Link>
           </section>
         </main>

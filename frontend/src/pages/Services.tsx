@@ -1,21 +1,24 @@
+import { copy } from "../translations";
+import { useLanguage } from "../language";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
-import { categories, services } from "../data";
+import { categories, categoryLabels, services } from "../data";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ServiceGrid from "../components/ServiceGrid";
 
 export default function Services() {
+  const { t, localize } = useLanguage();
   const [params] = useSearchParams();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState(
-    params.get("category") || "All Services",
+    params.get("category") || copy.allServices.en,
   );
   const filtered = services.filter(
     (s) =>
-      (category === "All Services" || s.category === category) &&
-      `${s.title} ${s.description}`.toLowerCase().includes(query.toLowerCase()),
+      (category === copy.allServices.en || s.category === category) &&
+      `${s.title.en} ${s.title.ur} ${s.description.en} ${s.description.ur}`.toLowerCase().includes(query.toLowerCase()),
   );
   return (
     <>
@@ -23,12 +26,9 @@ export default function Services() {
       <main>
         <section className="page-band">
           <div className="container">
-            <small className="eyebrow">YOUR NEXT STEP</small>
-            <h1>Government Services</h1>
-            <p>
-              Find clear, practical guidance for the services that matter to
-              you.
-            </p>
+            <small className="eyebrow"> {t.yourNextStep2} </small>
+            <h1> {t.governmentServices2} </h1>
+            <p> {t.findClearPracticalGuidanceForTheServicesThatMatter} </p>
           </div>
         </section>
         <section className="section services-page">
@@ -39,19 +39,19 @@ export default function Services() {
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search services..."
+                  placeholder={t.searchServices}
                 />
               </div>
-              <span className="result-count">{filtered.length} services</span>
+              <span className="result-count">{filtered.length} {t.services2} </span>
             </div>
             <div className="filter-pills">
-              {["All Services", ...categories].map((x) => (
+              {[copy.allServices.en, ...categories].map((x) => (
                 <button
                   className={category === x ? "selected" : ""}
                   onClick={() => setCategory(x)}
                   key={x}
                 >
-                  {x}
+                  {x === copy.allServices.en ? t.allServices : localize(categoryLabels[x])}
                 </button>
               ))}
             </div>
@@ -60,16 +60,14 @@ export default function Services() {
             ) : (
               <div className="empty-state">
                 <Search size={28} />
-                <h3>No services found</h3>
-                <p>Try another search or clear the category filter.</p>
+                <h3> {t.noServicesFound} </h3>
+                <p> {t.tryAnotherSearchOrClearTheCategoryFilter} </p>
                 <button
                   onClick={() => {
                     setQuery("");
-                    setCategory("All Services");
+                    setCategory(copy.allServices.en);
                   }}
-                >
-                  Clear filters
-                </button>
+                > {t.clearFilters} </button>
               </div>
             )}
           </div>

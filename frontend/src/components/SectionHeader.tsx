@@ -1,3 +1,4 @@
+import { useLanguage } from "../language";
 export default function SectionHeader({
   overline,
   title,
@@ -7,16 +8,17 @@ export default function SectionHeader({
   title: string;
   description?: string;
 }) {
+  const { localize } = useLanguage();
   return (
     <div className="section-head">
-      <small>{overline}</small>
-      <h2>{title}</h2>
+      <small>{localize(overline)}</small>
+      <h2>{localize(title)}</h2>
       <div className="diamonds">
         <i />
         <i />
         <i />
       </div>
-      {description && <p>{description}</p>}
+      {description && <p>{localize(description)}</p>}
     </div>
   );
 }
