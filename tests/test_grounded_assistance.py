@@ -63,7 +63,7 @@ def test_passport_requirements_use_grounded_checklist():
     assert "☐" in result["response"]
     assert result["sources"][0]["section"] == "3. Required Documents"
     assert "required documents" in retriever.retrieve.call_args.args[0]
-    assert generate.call_args.kwargs["system_prompt"] == CHECKLIST_SYSTEM_PROMPT
+    assert generate.call_args.kwargs["system_prompt"].startswith(CHECKLIST_SYSTEM_PROMPT)
 
 
 def test_explicit_passport_checklist_is_grounded():
@@ -123,7 +123,7 @@ def test_passport_fee_uses_high_confidence_fee_context():
     assert "vary by type" in result["response"]
     assert result["sources"][0]["section"] == "7. Fees"
     assert "fee schedule" in retriever.retrieve.call_args.args[0]
-    assert generate.call_args.kwargs["system_prompt"] == FEE_SYSTEM_PROMPT
+    assert generate.call_args.kwargs["system_prompt"].startswith(FEE_SYSTEM_PROMPT)
 
 
 def test_unverified_driving_license_fee_returns_not_found():
@@ -168,7 +168,7 @@ def test_normal_knowledge_query_keeps_normal_generation():
     )
 
     assert result["response"].startswith("The available validity")
-    assert generate.call_args.kwargs["system_prompt"] == _GENERATION_SYSTEM_PROMPT
+    assert generate.call_args.kwargs["system_prompt"].startswith(_GENERATION_SYSTEM_PROMPT)
 
 
 @patch("backend.graph.graph.run_planner")

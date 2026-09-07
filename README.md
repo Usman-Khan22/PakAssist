@@ -1,74 +1,47 @@
 # PakAssist
 
-PakAssist is an agentic AI assistant that helps Pakistani citizens understand and
-navigate government and public services (e.g. driving licenses, passports,
-appointments, and document requirements). The project is being built
-incrementally, feature by feature.
+FastAPI + LangGraph + Gemini + RAG backend with the completed React/TypeScript/Vite frontend in frontend/.
 
-## Current Stage
+## Run locally (PowerShell, from repository root)
 
-This stage sets up the backend foundation only:
+Backend:
 
-- A `PakAssistState` shared state definition used by LangGraph.
-- A minimal LangGraph graph with a single placeholder node, to confirm the
-  graph compiles and runs correctly.
-- A simple command-line entry point (`backend/main.py`) for testing the
-  foundation.
-
-No agents, RAG, document processing, appointment booking, or frontend
-functionality have been implemented yet — those will be added in later
-stages on top of this foundation.
-
-## Project Structure
-
-```
-PakAssist/
-│
-├── backend/
-│   ├── main.py              # Application entry point
-│   ├── agents/               # Future home for agent implementations
-│   └── graph/
-│       ├── state.py          # Shared LangGraph state
-│       └── graph.py          # LangGraph graph construction
-│
-├── frontend/                 # Future frontend (not implemented yet)
-├── requirements.txt
-└── README.md
+```powershell
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
+.\venv\Scripts\python.exe -m uvicorn backend.api.app:app --host 127.0.0.1 --port 8001
 ```
 
-## Setup
+Configure GEMINI_API_KEY and OPENROUTER_API_KEY only in the root .env. Existing model overrides remain supported. The existing RAG index is used; rebuild if necessary with the script in scripts/build_index.py.
 
-1. Create and activate a virtual environment:
+Frontend (second terminal):
 
-   ```bash
-   python -m venv venv
-   source venv/bin/activate   # On Windows: venv\Scripts\activate
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Create a `.env` file in the project root for any environment variables
-   (e.g. API keys) you'll need as the project grows. None are required yet
-   at this stage.
-
-## Running
-
-From the project root:
-
-```bash
-python -m backend.main
+```powershell
+npm.cmd ci --prefix frontend
+npm.cmd run dev --prefix frontend
 ```
 
-You'll be prompted for input in the terminal. The input is passed through
-the LangGraph graph and the resulting state is printed back — this confirms
-the backend foundation is wired correctly.
+Open http://localhost:5173. Copy frontend/.env.example to frontend/.env.local only if overriding VITE_API_BASE_URL. Never put provider keys in Vite variables.
 
-## Roadmap
+## Integration
 
-Future stages will add: a planner agent, intent/service routing, document
-understanding, RAG over official government sources, Urdu/regional language
-and voice interaction, checklists, and action-based workflows.
+- GET /health: backend availability.
+- POST /sessions: lazy session creation, shared by typed chat, microphone and uploads; session ID persists in sessionStorage.
+- POST /chat: session_id + message; response is displayed unchanged, with source cards.
+- POST /sessions/{session_id}/upload: multipart file + message. PDF/JPG/JPEG/PNG/WEBP. No invented upload size limit.
+- POST /voice/tts: text to audio/mpeg. Voice recognition uses en-PK, noncontinuous recognition and interim transcripts. The migrated makeVoiceFriendly helper shortens speech without an LLM call.
+
+Conversation history survives route navigation in memory. Reload preserves the backend session ID but resets the visible history. Clear chat starts a fresh session on the next message. Backend memory is process-local; after a backend restart, clear an expired chat explicitly.
+
+Service catalog and informational pages remain static. Journey, office and demo appointment requests use chat because the API exposes no separate structured dashboard endpoint. The dashboard links to a journey-progress question in the shared conversation.
+
+## Verification
+
+```powershell
+npm.cmd run build --prefix frontend
+node --test frontend/integration.test.cjs
+.\venv\Scripts\python.exe -m pytest tests -q -p no:cacheprovider
+```
+
+The Node integration tests require Node 24 (stripTypeScriptTypes). They check session reuse, exact answer preservation, multipart fields, network errors, recognition settings, duplicate final-event prevention and isolated TTS failures.
+
+See INTEGRATION_REPORT.md for results and manual checks still needed.

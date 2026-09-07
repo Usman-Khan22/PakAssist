@@ -370,36 +370,37 @@ def knowledge_agent(
         source_chunks = reliable_fee_chunks
         system_prompt = FEE_SYSTEM_PROMPT
     
-        is_first_turn = state.get("is_first_turn", False)
+    is_first_turn = state.get("is_first_turn", False)
 
-        query_lower = query.casefold()
+    query_lower = query.casefold()
 
-        greeting_words = (
-            "hello",
-            "hi",
-            "hey",
-            "salam",
-            "salaam",
-            "assalamualaikum",
-            "assalam o alaikum",
-            "السلام علیکم",
+    greeting_words = (
+        "hello",
+        "hi",
+        "hey",
+        "salam",
+        "salaam",
+        "assalamualaikum",
+        "assalam o alaikum",
+        "السلام علیکم",
+    )
+
+    user_greeted = any(
+        greeting in query_lower
+        for greeting in greeting_words
+    )
+
+    if is_first_turn and user_greeted:
+        conversation_instruction = (
+            "This is the first turn and the user greeted you. "
+            "Respond to the greeting naturally in the user's language style, "
+            "then answer their question. Do not make the greeting lengthy."
         )
-
-        user_greeted = any(
-            greeting in query_lower
-            for greeting in greeting_words
+    else:
+        conversation_instruction = (
+            "Do not add a greeting. Answer the user's question directly."
         )
-
-        if is_first_turn and user_greeted:
-            conversation_instruction = (
-                "This is the first turn and the user greeted you. "
-                "Respond to the greeting naturally in the user's language style, "
-                "then answer their question. Do not make the greeting lengthy."
-            )
-        else:
-            conversation_instruction = (
-                "Do not add a greeting. Answer the user's question directly."
-            )
+    system_prompt += "\n\n" + generation_instruction(preferred_language, simple=simple_language)
     context_block = _build_context_block(source_chunks)
     answer = _call_gemini(query, context_block, system_prompt=system_prompt, conversation_instruction=conversation_instruction,)
 
