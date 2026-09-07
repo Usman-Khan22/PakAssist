@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
@@ -16,10 +16,10 @@ _DATASET_FILES = {
     "driving_license": "driving_license_service_centers (1).json",
 }
 _LOCATION_PATTERN = re.compile(
-    r"\b(?:in|near|at|around)\s+([a-z][a-z .'-]*?)(?=[?.!,;]|$)", re.IGNORECASE
+    r"\b(?:in|near|at|around)\s+([a-z][a-z .'-]*?)(?=\s+(?:mein|main|me)\b|[?.!,;]|$)", re.IGNORECASE
 )
 _ROMAN_URDU_LOCATION_PATTERN = re.compile(
-    r"\b([a-z][a-z .'-]*?)\s+mein\b", re.IGNORECASE
+    r"\b([a-z][a-z .'-]*?)\s+(?:mein|main|me)\b", re.IGNORECASE
 )
 _LOCATION_STOP_WORDS = {
     "a",
@@ -31,7 +31,9 @@ _LOCATION_STOP_WORDS = {
     "license",
     "licence",
     "office",
+    "offices",
     "passport",
+    "passports",
     "service",
     "the",
 }
@@ -54,6 +56,7 @@ class ServiceCenterLookupResult:
     service_type: str
     location: str | None
     centers: list[dict[str, Any]]
+    missing_locations: list[str] = field(default_factory=list)
 
 
 def _normalize(value: str) -> str:
@@ -85,21 +88,20 @@ def _extract_location(query: str, records: tuple[dict[str, Any], ...]) -> str | 
         if urdu_name in query:
             return dataset_name
 
-    roman_match = _ROMAN_URDU_LOCATION_PATTERN.search(query)
-    if roman_match:
+    match = _LOCATION_PATTERN.search(query)
+    if match:
+        candidate = match.group(1).strip()
+        words = [word for word in candidate.split() if word.casefold() not in _LOCATION_STOP_WORDS]
+        if words:
+            return " ".join(words)
+
+    for roman_match in _ROMAN_URDU_LOCATION_PATTERN.finditer(query):
         candidate = roman_match.group(1).strip()
         words = [
             word
             for word in candidate.split()
             if word.casefold() not in _LOCATION_STOP_WORDS
         ]
-        if words:
-            return " ".join(words)
-
-    match = _LOCATION_PATTERN.search(query)
-    if match:
-        candidate = match.group(1).strip()
-        words = [word for word in candidate.split() if word.casefold() not in _LOCATION_STOP_WORDS]
         if words:
             return " ".join(words)
 
@@ -117,6 +119,35 @@ def _extract_location(query: str, records: tuple[dict[str, Any], ...]) -> str | 
     return None
 
 
+def _extract_locations(query: str, records: tuple[dict[str, Any], ...]) -> list[str]:
+    """Split explicit city lists without silently dropping unknown locations."""
+    explicit = re.search(r"\b(?:in|near|at|around)\s+(.+)$", query, re.IGNORECASE)
+    if not explicit:
+        location = _extract_location(query, records)
+        return [location] if location else []
+    candidate = explicit.group(1).strip(" .!?؟۔")
+    # 'near me Karachi' supplies a city after the conversational 'me'.
+    candidate = re.sub(r"^me\s+", "", candidate, flags=re.IGNORECASE)
+    candidate = re.sub(r"\s+(?:me|mein|main)$", "", candidate, flags=re.IGNORECASE)
+    names = set(_URDU_LOCATION_ALIASES.values())
+    names.update(str(record[key]) for record in records for key in ("region", "city") if record.get(key))
+    alternatives = "|".join(re.escape(name) for name in sorted(names, key=len, reverse=True))
+    city = re.compile(rf"(?:{alternatives})", re.IGNORECASE)
+    locations = []
+    for part in re.split(r"\s*(?:[,،;&]|\band\b|\baur\b|\bor\b|اور)\s*", candidate, flags=re.IGNORECASE):
+        part = part.strip()
+        if not part:
+            continue
+        # Also accept lists without commas: 'Islamabad Lahore and Karachi'.
+        matches = list(city.finditer(part))
+        remainder = city.sub("", part).strip()
+        pieces = [match.group() for match in matches] if matches and not remainder else [part]
+        for piece in pieces:
+            if piece.casefold() not in {value.casefold() for value in locations}:
+                locations.append(piece)
+    return locations
+
+
 def lookup_service_centers(
     service_type: str, query: str, *, limit: int = 5
 ) -> ServiceCenterLookupResult:
@@ -130,8 +161,8 @@ def lookup_service_centers(
         )
 
     records = _load_centers(service_type)
-    location = _extract_location(query, records)
-    if not location:
+    locations = _extract_locations(query, records)
+    if not locations:
         return ServiceCenterLookupResult(
             status="missing_location",
             service_type=service_type,
@@ -139,11 +170,20 @@ def lookup_service_centers(
             centers=[],
         )
 
-    normalized_location = _normalize(location)
-    matches = [record for record in records if normalized_location in _record_text(record)]
+    matches = []
+    missing_locations = []
+    for location in locations:
+        normalized_location = _normalize(location)
+        city_matches = [record for record in records if normalized_location in _record_text(record)][:limit]
+        if not city_matches:
+            missing_locations.append(location)
+        for record in city_matches:
+            if record not in matches:
+                matches.append(record)
     return ServiceCenterLookupResult(
         status="found" if matches else "no_results",
         service_type=service_type,
-        location=location,
-        centers=matches[:limit],
+        location=", ".join(locations),
+        centers=matches,
+        missing_locations=missing_locations,
     )

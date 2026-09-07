@@ -153,7 +153,11 @@ def _lookup_response(result: ServiceCenterLookupResult, language: str) -> str:
         _format_center(center, number, language)
         for number, center in enumerate(result.centers, start=1)
     )
-    return f"{heading}\n\n{details}"
+    missing = "\n\n".join(
+        message("lookup_no_results", language, service=service_label, location=location)
+        for location in result.missing_locations
+    )
+    return f"{heading}\n\n{details}" + (f"\n\n{missing}" if missing else "")
 
 
 def _normalize(value: str) -> str:
