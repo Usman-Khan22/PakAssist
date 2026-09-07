@@ -12,9 +12,14 @@ from backend.services.appointment_simulator import (
     check_slots,
 )
 from backend.services.journey import is_journey_request, journey_summary, update_journey
+from backend.services.language import message
 from backend.services.service_centers import (
     ServiceCenterLookupResult,
     lookup_service_centers,
+)
+from backend.services.verification import (
+    verify_booking_confirmation,
+    verify_journey_transition,
 )
 
 
@@ -40,6 +45,12 @@ _ORDINALS = {
     "9th": 8,
     "tenth": 9,
     "10th": 9,
+    "pehla": 0,
+    "pehli": 0,
+    "pehle": 0,
+    "doosra": 1,
+    "doosri": 1,
+    "doosre": 1,
 }
 
 
@@ -63,8 +74,25 @@ def _requested_action(state: PakAssistState) -> str | None:
     return None
 
 
-def _format_center(center: dict[str, Any], number: int) -> str:
+def _format_center(center: dict[str, Any], number: int, language: str) -> str:
     lines = [f"{number}. {center['office_name']}"]
+    labels = {
+        "english": {
+            "Address": "Address", "Phone": "Phone", "Service": "Service",
+            "Services": "Services", "Hours": "Hours", "Portal": "Portal",
+            "Confidence": "Confidence", "Source": "Source",
+        },
+        "roman_urdu": {
+            "Address": "Pata", "Phone": "Phone", "Service": "Service",
+            "Services": "Services", "Hours": "Auqaat", "Portal": "Portal",
+            "Confidence": "Bharosa", "Source": "Source",
+        },
+        "urdu": {
+            "Address": "پتہ", "Phone": "فون", "Service": "سروس",
+            "Services": "سروسز", "Hours": "اوقات", "Portal": "پورٹل",
+            "Confidence": "اعتماد", "Source": "ماخذ",
+        },
+    }.get(language, {})
     for label, key in (
         ("Address", "address"),
         ("Phone", "phone"),
@@ -79,7 +107,7 @@ def _format_center(center: dict[str, Any], number: int) -> str:
         if value:
             if isinstance(value, list):
                 value = ", ".join(str(item) for item in value)
-            lines.append(f"   {label}: {value}")
+            lines.append(f"   {labels.get(label, label)}: {value}")
     return "\n".join(lines)
 
 
@@ -104,21 +132,25 @@ def _source_refs(result: ServiceCenterLookupResult) -> list[SourceRef]:
     return refs
 
 
-def _lookup_response(result: ServiceCenterLookupResult) -> str:
+def _lookup_response(result: ServiceCenterLookupResult, language: str) -> str:
     service_label = result.service_type.replace("_", " ")
     if result.status == "missing_location":
-        return f"Which city or region should I search for a {service_label} service center in?"
+        return message("lookup_missing_location", language, service=service_label)
     if result.status == "no_results":
-        return (
-            f"I couldn't find a {service_label} service center for {result.location} "
-            "in the current dataset."
+        return message(
+            "lookup_no_results",
+            language,
+            service=service_label,
+            location=result.location,
         )
     if result.status == "unsupported_service":
-        return f"Service-center lookup is not available for {service_label}."
+        return message("lookup_unsupported", language, service=service_label)
 
-    heading = f"I found these {service_label} service centers for {result.location}:"
+    heading = message(
+        "lookup_found", language, service=service_label, location=result.location
+    )
     details = "\n\n".join(
-        _format_center(center, number)
+        _format_center(center, number, language)
         for number, center in enumerate(result.centers, start=1)
     )
     return f"{heading}\n\n{details}"
@@ -161,32 +193,27 @@ def _resolve_office_reference(
     return None, False
 
 
-def _office_selection_response(options: list[str]) -> str:
+def _office_selection_response(options: list[str], language: str) -> str:
     choices = "\n".join(
         f"{number}. {office}" for number, office in enumerate(options, start=1)
     )
-    return (
-        "Several matching offices are available. Which office should I use for "
-        "the demo appointment? Reply with its name or number:\n" + choices
-    )
+    return message("office_selection", language) + "\n" + choices
 
 
-def _invalid_office_reference_response(options: list[str]) -> str:
+def _invalid_office_reference_response(options: list[str], language: str) -> str:
     count = len(options)
-    return (
-        f"There are only {count} matching offices. "
-        f"Please choose an office from 1 to {count}."
-    )
+    return message("invalid_office", language, count=count)
 
 
 def _find_appointment_office(state: PakAssistState) -> tuple[str | None, dict | None]:
+    language = state.get("preferred_language", "english")
     current_lookup = lookup_service_centers(
         state.get("service_type", "unknown"), state.get("user_input", "")
     )
     if current_lookup.status in {"found", "no_results"}:
         if current_lookup.status == "no_results":
             return None, {
-                "response": _lookup_response(current_lookup),
+                "response": _lookup_response(current_lookup, language),
                 "sources": [],
                 "pending_clarification": None,
                 "pending_request": None,
@@ -198,7 +225,7 @@ def _find_appointment_office(state: PakAssistState) -> tuple[str | None, dict | 
         current_options = [center["office_name"] for center in current_lookup.centers]
         if len(current_options) > 1:
             return None, {
-                "response": _office_selection_response(current_options),
+                "response": _office_selection_response(current_options, language),
                 "sources": [],
                 "pending_clarification": "office",
                 "pending_request": state.get("user_input"),
@@ -212,7 +239,7 @@ def _find_appointment_office(state: PakAssistState) -> tuple[str | None, dict | 
     if invalid_reference:
         options = state.get("office_options") or []
         return None, {
-            "response": _invalid_office_reference_response(options),
+            "response": _invalid_office_reference_response(options, language),
             "sources": [],
             "pending_clarification": "office",
             "pending_request": state.get("user_input"),
@@ -223,7 +250,7 @@ def _find_appointment_office(state: PakAssistState) -> tuple[str | None, dict | 
     existing_options = state.get("office_options") or []
     if len(existing_options) > 1:
         return None, {
-            "response": _office_selection_response(existing_options),
+            "response": _office_selection_response(existing_options, language),
             "sources": [],
             "pending_clarification": "office",
             "pending_request": state.get("user_input"),
@@ -232,7 +259,7 @@ def _find_appointment_office(state: PakAssistState) -> tuple[str | None, dict | 
     result = current_lookup
     if result.status == "missing_location":
         return None, {
-            "response": _lookup_response(result),
+            "response": _lookup_response(result, language),
             "sources": [],
             "pending_clarification": "location",
             "pending_request": state.get("user_input"),
@@ -241,7 +268,7 @@ def _find_appointment_office(state: PakAssistState) -> tuple[str | None, dict | 
         }
     if result.status != "found":
         return None, {
-            "response": _lookup_response(result),
+            "response": _lookup_response(result, language),
             "sources": [],
             "pending_clarification": None,
             "pending_request": None,
@@ -252,7 +279,7 @@ def _find_appointment_office(state: PakAssistState) -> tuple[str | None, dict | 
     options = [center["office_name"] for center in result.centers]
     if len(options) > 1:
         return None, {
-            "response": _office_selection_response(options),
+            "response": _office_selection_response(options, language),
             "sources": [],
             "pending_clarification": "office",
             "pending_request": state.get("user_input"),
@@ -262,63 +289,72 @@ def _find_appointment_office(state: PakAssistState) -> tuple[str | None, dict | 
     return options[0], None
 
 
-def _availability_response(result: AppointmentResult) -> str:
+def _availability_response(result: AppointmentResult, language: str) -> str:
     if result.status == "not_configured":
-        return (
-            f"No demo appointment schedule is configured for {result.office_name}. "
-            "This does not reflect real government availability."
+        return message(
+            "availability_not_configured", language, office=result.office_name
         )
     if not result.slots:
-        return (
-            f"No simulated slots remain for {result.office_name} on {result.date}. "
-            "Check the official government booking system for real availability."
+        return message(
+            "availability_empty",
+            language,
+            office=result.office_name,
+            date=result.date,
         )
-    return (
-        "Simulated prototype availability — not live government availability.\n"
-        f"Office: {result.office_name}\n"
-        f"Date: {result.date}\n"
-        f"Available demo slots: {', '.join(result.slots)}\n"
-        "A real appointment must be checked through the official government system."
+    return message(
+        "availability",
+        language,
+        office=result.office_name,
+        date=result.date,
+        slots=", ".join(result.slots),
     )
 
 
-def _booking_response(result: AppointmentResult) -> str:
+def _booking_response(
+    result: AppointmentResult, language: str, *, verified: bool = True
+) -> str:
     if result.status == "booked":
-        return (
-            "Simulated booking confirmed (demo only).\n"
-            f"Office: {result.office_name}\n"
-            f"Date: {result.date}\n"
-            f"Time: {result.requested_time}\n"
-            f"Demo reference: {result.booking_reference}\n"
-            "No real government appointment was created; use the official booking "
-            "system for an actual appointment."
+        if not verified:
+            return message("booking_verification_failed", language)
+        return message(
+            "booking_confirmed",
+            language,
+            office=result.office_name,
+            date=result.date,
+            time=result.requested_time,
+            reference=result.booking_reference,
         )
     if result.status == "missing_time":
-        return "Which demo appointment time would you like to book?"
+        return message("booking_missing_time", language)
     if result.status == "slot_not_found":
-        return (
-            f"The {result.requested_time} demo slot does not exist for "
-            f"{result.office_name} on {result.date}."
+        return message(
+            "booking_slot_not_found",
+            language,
+            time=result.requested_time,
+            office=result.office_name,
+            date=result.date,
         )
     if result.status == "unavailable":
-        return (
-            f"The {result.requested_time} demo slot for {result.office_name} is "
-            "already unavailable or booked in this simulation."
+        return message(
+            "booking_unavailable",
+            language,
+            time=result.requested_time,
+            office=result.office_name,
         )
-    return (
-        f"No demo appointment schedule is configured for {result.office_name}. "
-        "This does not reflect real government availability."
+    return message(
+        "availability_not_configured", language, office=result.office_name
     )
 
 
 def _run_service_center_lookup(state: PakAssistState) -> dict:
+    language = state.get("preferred_language", "english")
     result = lookup_service_centers(
         state.get("service_type", "unknown"), state.get("user_input", "")
     )
     pending_location = result.status == "missing_location"
     options = [center["office_name"] for center in result.centers]
     update = {
-        "response": _lookup_response(result),
+        "response": _lookup_response(result, language),
         "sources": _source_refs(result),
         "pending_clarification": "location" if pending_location else None,
         "pending_request": state.get("user_input") if pending_location else None,
@@ -328,11 +364,13 @@ def _run_service_center_lookup(state: PakAssistState) -> dict:
     }
     if result.status == "found":
         status = "selected" if len(options) == 1 else "located"
-        update["journeys"] = update_journey(state, "service_center", status)
+        if verify_journey_transition("service_center", status, True):
+            update["journeys"] = update_journey(state, "service_center", status)
     return update
 
 
 def _run_check_slots(state: PakAssistState) -> dict:
+    language = state.get("preferred_language", "english")
     office, clarification = _find_appointment_office(state)
     if clarification:
         return clarification
@@ -343,16 +381,17 @@ def _run_check_slots(state: PakAssistState) -> dict:
         state.get("booked_slots"),
     )
     update = {
-        "response": _availability_response(result),
+        "response": _availability_response(result, language),
         "sources": [],
         "pending_clarification": None,
         "pending_request": None,
         "selected_office": office,
         "appointment_date": result.date,
     }
-    journeys = update_journey(state, "service_center", "selected")
-    update["journeys"] = journeys
-    if result.status == "available":
+    if result.status == "available" and verify_journey_transition(
+        "appointment", "availability_checked", True
+    ):
+        journeys = update_journey(state, "service_center", "selected")
         progress_state = {**state, "journeys": journeys}
         update["journeys"] = update_journey(
             progress_state, "appointment", "availability_checked"
@@ -361,10 +400,16 @@ def _run_check_slots(state: PakAssistState) -> dict:
 
 
 def _run_book_slot(state: PakAssistState) -> dict:
+    language = state.get("preferred_language", "english")
     office, clarification = _find_appointment_office(state)
     if clarification:
         return clarification
 
+    available_before = check_slots(
+        state.get("service_type", "unknown"),
+        office,
+        state.get("booked_slots"),
+    )
     result = book_slot(
         state.get("service_type", "unknown"),
         office,
@@ -374,8 +419,13 @@ def _run_book_slot(state: PakAssistState) -> dict:
     booked_slots = list(state.get("booked_slots") or [])
     if result.booked_slot_key:
         booked_slots.append(result.booked_slot_key)
+    booking_verified = result.status != "booked" or verify_booking_confirmation(
+        result, available_before, booked_slots
+    )
+    if result.status == "booked" and not booking_verified:
+        booked_slots = list(state.get("booked_slots") or [])
     update = {
-        "response": _booking_response(result),
+        "response": _booking_response(result, language, verified=booking_verified),
         "sources": [],
         "pending_clarification": None,
         "pending_request": None,
@@ -383,7 +433,9 @@ def _run_book_slot(state: PakAssistState) -> dict:
         "appointment_date": result.date,
         "booked_slots": booked_slots,
     }
-    if result.status == "booked":
+    if result.status == "booked" and booking_verified and verify_journey_transition(
+        "appointment", "demo_booked", True
+    ):
         journeys = update_journey(state, "service_center", "selected")
         progress_state = {**state, "journeys": journeys}
         update["journeys"] = update_journey(
@@ -409,9 +461,8 @@ def action_agent(state: PakAssistState) -> dict:
             "pending_request": None,
         }
     return {
-        "response": (
-            "This action is not supported yet. I can look up service centers "
-            "and simulate appointment slots."
+        "response": message(
+            "unsupported_action", state.get("preferred_language", "english")
         ),
         "sources": [],
         "pending_clarification": None,

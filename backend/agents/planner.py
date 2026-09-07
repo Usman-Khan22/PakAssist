@@ -66,86 +66,32 @@ passports, and appointments.
 Given a single user message, which may be in English, Urdu, Roman Urdu,
 or mixed Urdu-English, determine:
 
-- intent:
-  The user's high-level goal in short snake_case.
-
-  Examples:
-  "apply_for_service"
-  "renew_service"
-  "book_appointment"
-
-  Use "unknown" if unclear.
-
-- service_type:
-  The specific government service involved.
-
-  Examples:
-  "driving_license"
-  "passport"
-
-  Use "unknown" if it is not clearly implied by the message.
-  Never invent or guess a specific service.
-
-- next_step:
-  Which downstream capability the request should route to.
-
-Routing rules:
-
-- "knowledge"
-  Use when the user wants information or guidance about a service.
-
-  Requirements/checklist questions and fee/cost questions must use this route.
-
-  Use intent "requirements_checklist" for:
-  - required documents
-  - what documents are needed
-  - what to bring
-  - checklist requests
-
-  Use intent "fee_lookup" for:
-  - fee
-  - fees
-  - cost
-  - price
-  - how much
-
-  Broad goals such as applying for, getting, or renewing a supported
-  government service are journey guidance, not executable actions.
-
-  For those requests use:
-  intent = "service_journey"
-  next_step = "knowledge"
-
-  Requests to inspect, read, explain, or describe information visible
-  in an uploaded image or document also use "knowledge".
-
-  For uploaded content inspection use:
-  intent = "inspect_upload"
-
-- "action"
-  Use when the user wants a supported executable operation.
-
-  For locating a service center or office use:
-  intent = "service_center_lookup"
-
-  For prototype appointment availability use:
-  intent = "check_slots"
-  next_step = "action"
-
-  For prototype slot booking use:
-  intent = "book_slot"
-  next_step = "action"
-
-  For a request to show journey progress or what remains use:
-  intent = "journey_summary"
-  next_step = "action"
-
-- "appointment"
-  Reserved for a real appointment capability that is not currently connected.
-
-- "clarify"
-  Use when the request is ambiguous, off-topic, or you are not confident
-  enough to classify it.
+- intent: the user's high-level goal, in short snake_case (e.g. \
+"apply_for_service", "renew_service", "book_appointment"). Use "unknown" if unclear.
+- service_type: the specific government service involved (e.g. "driving_license", \
+"passport"). Use "unknown" if it isn't clearly implied by the message — never \
+invent or guess a specific service.
+- next_step: which downstream capability this should eventually go to.
+  - "knowledge"   - the user wants information or guidance about a service.
+    Requirements/checklist questions and fee/cost questions must use this route.
+    Use intent "requirements_checklist" for documents/what-to-bring requests,
+    and "fee_lookup" for fee or cost requests.
+    Broad goals such as applying for, getting, or renewing a supported service
+    are journey guidance, not executable actions. Use intent "service_journey"
+    and next_step "knowledge".
+    Requests to inspect, read, explain, or describe information visible in an
+    uploaded image/document also use "knowledge". Use intent "inspect_upload".
+  - "action"      - the user wants a supported executable operation, such as
+    locating a service center/office. For a service-center lookup, use intent
+    "service_center_lookup". For prototype appointment availability, use intent
+    "check_slots" and next_step "action". For a prototype slot booking, use
+    intent "book_slot" and next_step "action".
+    For a request to show journey/progress or what remains, use intent
+    "journey_summary" and next_step "action".
+  - "appointment" - reserved for a real appointment capability that is not
+    currently connected.
+  - "clarify"     - the request is ambiguous, off-topic, or you're not confident \
+enough to classify it.
 
 If unsure, prefer:
 intent = "unknown"
