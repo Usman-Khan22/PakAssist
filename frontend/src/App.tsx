@@ -1,1371 +1,252 @@
-﻿import { useEffect, useState } from "react";
-import {
-  Link,
-  NavLink,
-  Route,
-  Routes,
-  useLocation,
-  useNavigate,
-  useParams,
-  useSearchParams,
-} from "react-router-dom";
-import {
-  ArrowRight,
-  BookOpen,
-  CalendarDays,
-  Check,
-  ChevronDown,
-  ChevronRight,
-  CircleHelp,
-  ClipboardCheck,
-  CreditCard,
-  FileText,
-  Gauge,
-  Globe2,
-  Landmark,
-  Menu,
-  Mic,
-  Search,
-  ShieldCheck,
-  Sparkles,
-  X,
-} from "lucide-react";
-import { categories, getService, services, type Service } from "./data";
-import { getServiceBySlug, getServices } from "./services/api";
-import { getStoredLanguage, setStoredLanguage } from "./language";
+import { createContext, useContext, useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { Link, NavLink, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowRight, Building2, Check, CheckCheck, ChevronRight, CircleHelp, Copy, ExternalLink, FileText, Globe2, Menu, MessageCircle, Mic, Paperclip, Search, Send, ShieldCheck, Square, Trash2, Volume2, X } from 'lucide-react';
+import { directoryResources, type Service } from './data';
+import { applyLanguage, getInitialLanguage, translate, type Language } from './language';
+import { createSession, getServiceBySlug, getServices, sendChatMessage, type ChatResponse, type Session, type Source, type Upload } from './services/api';
 
-const suggestions = [
-  "Renew CNIC online",
-  "Passport document checklist",
-  "International driving permit",
-  "FBR tax filer guide",
-];
-const navItems = [
-  ["Home", "/"],
-  ["Services", "/services"],
-  ["How It Works", "/how-it-works"],
-  ["About", "/about"],
-];
-function Logo({ footer = false }: { footer?: boolean }) {
-  return (
-    <Link to="/" className="logo">
-      <span className="logo-tile">
-        <span />
-      </span>
-      <b>
-        Pak<span className={footer ? "gold" : ""}>Assist</span>
-      </b>
-    </Link>
-  );
+const supportedServices = getServices();
+
+type LanguageValue = { language: Language; setLanguage: (value: Language) => void; t: (text: string) => string };
+const LanguageContext = createContext<LanguageValue | null>(null);
+function useLanguage() { const value = useContext(LanguageContext); if (!value) throw new Error('Language provider missing'); return value; }
+
+export type VoiceState = 'idle' | 'listening' | 'processing' | 'disabled' | 'error';
+export type ReaderTarget = { type: 'page' } | { type: 'message'; id: string };
+export type ReadAloudState = { status: 'idle' | 'speaking' | 'paused' | 'error'; target?: ReaderTarget };
+export type VoiceUiIntegration = {
+  voiceState: VoiceState;
+  readAloudState: ReadAloudState;
+  onVoiceClick?: () => void;
+  onReadPage?: (root: HTMLElement) => void;
+  onReadMessage?: (messageId: string, text: string) => void;
+  onStopReading?: () => void;
+};
+
+type AppProps = { voiceUi?: VoiceUiIntegration };
+const disconnectedVoiceUi: VoiceUiIntegration = { voiceState: 'disabled', readAloudState: { status: 'idle' } };
+const VoiceUiContext = createContext<VoiceUiIntegration>(disconnectedVoiceUi);
+function useVoiceUi() { return useContext(VoiceUiContext); }
+
+function sameReader(left?: ReaderTarget, right?: ReaderTarget) {
+  return left?.type === right?.type && (left?.type !== 'message' || (right?.type === 'message' && left.id === right.id));
 }
-function Button({
-  children,
-  variant = "primary",
-  onClick,
-  icon = true,
-  type = "button",
-}: {
-  children: React.ReactNode;
-  variant?: "primary" | "outline" | "quiet";
-  onClick?: () => void;
-  icon?: boolean;
-  type?: "button" | "submit";
-}) {
-  return (
-    <button type={type} onClick={onClick} className={`btn btn-${variant}`}>
-      {children}
-      {icon && <ArrowRight size={16} />}
-    </button>
-  );
+
+function ReadAloudButton({ target, text, compact = false }: { target: ReaderTarget; text?: string; compact?: boolean }) {
+  const { t } = useLanguage();
+  const voiceUi = useVoiceUi();
+  const active = voiceUi.readAloudState.status === 'speaking' && sameReader(voiceUi.readAloudState.target, target);
+  const handler = target.type === 'page' ? voiceUi.onReadPage : voiceUi.onReadMessage;
+  const label = active ? t('Stop reading') : t(target.type === 'page' ? 'Read page' : 'Read response');
+  const anotherReaderActive = voiceUi.readAloudState.status === 'speaking' && !active;
+  const disabled = !handler || ((active || anotherReaderActive) && !voiceUi.onStopReading);
+  const activate = () => {
+    if (active) voiceUi.onStopReading?.();
+    else {
+      if (anotherReaderActive) voiceUi.onStopReading?.();
+      if (target.type === 'page') {
+        const root = document.getElementById('main-content');
+        if (root) voiceUi.onReadPage?.(root);
+      } else voiceUi.onReadMessage?.(target.id, text ?? '');
+    }
+  };
+  return <button type="button" className={`read-button ${compact ? 'compact' : ''} ${active ? 'active' : ''}`} onClick={activate} disabled={disabled} aria-label={label} aria-controls={target.type === 'page' ? 'main-content' : `message-${target.id}`} aria-pressed={active} title={label}>{active ? <Square size={compact ? 16 : 17} /> : <Volume2 size={compact ? 17 : 18} />}<span>{label}</span></button>;
 }
+
+function VoiceButton() {
+  const { t } = useLanguage();
+  const { voiceState, onVoiceClick } = useVoiceUi();
+  const labels: Record<VoiceState, string> = { idle: 'Ask with voice', listening: 'Stop voice input', processing: 'Voice input processing', disabled: 'Ask with voice', error: 'Ask with voice' };
+  const label = t(labels[voiceState]);
+  return <button type="button" className={`icon-button voice-button ${voiceState}`} onClick={onVoiceClick} disabled={!onVoiceClick || voiceState === 'disabled' || voiceState === 'processing'} aria-label={label} aria-describedby={voiceState !== 'idle' && voiceState !== 'disabled' ? 'voice-input-status' : undefined} aria-pressed={voiceState === 'listening'} title={label}><Mic size={20} /></button>;
+}
+
+function Logo() {
+  return <Link className="brand" to="/" aria-label="PakAssist home"><span className="brand-mark" aria-hidden="true">P</span><span><b>PakAssist</b><small>Citizen guidance</small></span></Link>;
+}
+
 function Header() {
+  const { language, setLanguage, t } = useLanguage();
   const [open, setOpen] = useState(false);
-  const [urdu, setUrdu] = useState(getStoredLanguage);
-  const navigate = useNavigate();
-  useEffect(() => {
-    setStoredLanguage(urdu);
-  }, [urdu]);
-  return (
-    <header className="site-header">
-      <div className="nav-wrap">
-        <Logo />
-        <nav className={open ? "nav-open" : ""}>
-          {navItems.map(([label, path]) => (
-            <NavLink key={path} to={path} onClick={() => setOpen(false)}>
-              {label}
-            </NavLink>
-          ))}
-          <button className="nav-ask" onClick={() => navigate("/chat")}>
-            Ask PakAssist <ArrowRight size={15} />
-          </button>
-        </nav>
-        <div className="nav-tools">
-          <button
-            className="language"
-            onClick={() => setUrdu(!urdu)}
-            aria-label="Switch language"
-          >
-            <Globe2 size={15} />
-            <span>{urdu ? "اردو" : "EN"}</span>
-            <ChevronDown size={13} />
-          </button>
-          <button className="access" aria-label="Accessibility options">
-            <CircleHelp size={19} />
-          </button>
-          <button
-            className="mobile-menu"
-            aria-label="Toggle menu"
-            onClick={() => setOpen(!open)}
-          >
-            {open ? <X /> : <Menu />}
-          </button>
-        </div>
+  const location = useLocation();
+  useEffect(() => setOpen(false), [location.pathname]);
+  const links = [{ to: '/services', label: 'Services' }, { to: '/how-it-works', label: 'How it works' }, { to: '/#official-sources', label: 'Official sources' }, { to: '/about', label: 'About' }];
+  return <header className="site-header"><div className="shell nav-shell">
+    <Logo />
+    <button className="icon-button menu-button" aria-label={t(open ? 'Close navigation' : 'Open navigation')} aria-expanded={open} onClick={() => setOpen(!open)}><Menu size={22} /></button>
+    <nav className={open ? 'main-nav is-open' : 'main-nav'} aria-label={t('Main navigation')}>
+      {links.map((link) => <NavLink key={link.to} to={link.to} className={({ isActive }) => isActive && !link.to.includes('#') ? 'active' : ''}>{t(link.label)}</NavLink>)}
+      <div className="accessibility-controls" aria-label={t('Accessibility controls')}><ReadAloudButton target={{ type: 'page' }} /></div>
+      <div className="language-switch" aria-label={t('Choose language')}>
+        <button className={language === 'en' ? 'selected' : ''} onClick={() => setLanguage('en')} lang="en">EN</button>
+        <span aria-hidden="true">/</span>
+        <button className={language === 'ur' ? 'selected' : ''} onClick={() => setLanguage('ur')} lang="ur">اردو</button>
       </div>
-    </header>
-  );
+      <Link className="button button-primary nav-cta" to="/chat"><MessageCircle size={18} />{t('Ask PakAssist')}</Link>
+    </nav>
+  </div></header>;
 }
+
 function Footer() {
-  return (
-    <footer>
-      <div className="footer-grid">
-        <div>
-          <Logo footer />
-          <p className="footer-tag">
-            Making civic services simple,
-            <br />
-            one question at a time.
-          </p>
-        </div>
-        <div>
-          <small>EXPLORE</small>
-          <Link to="/services">All Services</Link>
-          <Link to="/chat">Ask PakAssist</Link>
-          <Link to="/how-it-works">How it works</Link>
-        </div>
-        <div>
-          <small>COMPANY</small>
-          <Link to="/about">About us</Link>
-          <a href="#trust">Trust & safety</a>
-          <a href="#contact">Contact</a>
-        </div>
-        <div className="footer-note">
-          <small>IMPORTANT</small>
-          <p>
-            PakAssist is an independent civic-tech guide. Always verify final
-            details on official .gov.pk portals.
-          </p>
-        </div>
-      </div>
-      <div className="footer-bottom">
-        <span>© 2025 PakAssist. Built by citizens, for citizens.</span>
-        <span>Terms&nbsp;&nbsp; Privacy&nbsp;&nbsp; Security</span>
-      </div>
-    </footer>
-  );
+  const { t } = useLanguage();
+  return <footer className="site-footer"><div className="shell footer-grid">
+    <div><Logo /><p>{t('Clear guidance for selected Pakistani public services.')}</p></div>
+    <nav aria-label={t('Footer navigation')}><Link to="/services">{t('Services')}</Link><Link to="/how-it-works">{t('How it works')}</Link><Link to="/about">{t('About')}</Link></nav>
+    <p className="footer-note">{t('Prototype only. PakAssist is not a government authority and does not submit applications or make real bookings.')}</p>
+  </div></footer>;
 }
-function SectionHeader({
-  overline,
-  title,
-  description,
-}: {
-  overline: string;
-  title: string;
-  description?: string;
-}) {
-  return (
-    <div className="section-head">
-      <small>{overline}</small>
-      <h2>{title}</h2>
-      <div className="diamonds">
-        <i />
-        <i />
-        <i />
-      </div>
-      {description && <p>{description}</p>}
-    </div>
-  );
-}
-function HeroSearch() {
-  const [text, setText] = useState("");
+
+function PageLayout({ children }: { children: React.ReactNode }) { const { t } = useLanguage(); return <><a className="skip-link" href="#main-content">{t('Skip to main content')}</a><Header /><main id="main-content" data-read-aloud-root tabIndex={-1}>{children}</main><Footer /></>; }
+
+function SearchBox({ large = false }: { large?: boolean }) {
+  const { t } = useLanguage();
   const navigate = useNavigate();
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate(`/chat${text ? `?query=${encodeURIComponent(text)}` : ""}`);
+  const [query, setQuery] = useState('');
+  const [active, setActive] = useState(-1);
+  const prompts = supportedServices.flatMap((service) => service.prompts);
+  const matches = query.trim() ? prompts.filter((item) => item.toLowerCase().includes(query.toLowerCase())).slice(0, 5) : [];
+  const submit = (value = query) => { if (value.trim()) navigate(`/chat?q=${encodeURIComponent(value.trim())}`); };
+  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (!matches.length) return;
+    if (event.key === 'ArrowDown') { event.preventDefault(); setActive((current) => Math.min(current + 1, matches.length - 1)); }
+    if (event.key === 'ArrowUp') { event.preventDefault(); setActive((current) => Math.max(current - 1, 0)); }
+    if (event.key === 'Enter' && active >= 0) { event.preventDefault(); submit(matches[active]); }
+    if (event.key === 'Escape') { setQuery(''); setActive(-1); }
   };
-  return (
-    <>
-      <form className="hero-search" onSubmit={submit}>
-        <Search size={19} />
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Ask about any government service..."
-        />
-        <button
-          className="voice-search"
-          type="button"
-          disabled
-          aria-label="Voice search coming soon"
-          title="Voice search coming soon"
-        >
-          <Mic size={18} />
-        </button>
-        <button aria-label="Search">
-          <ArrowRight />
-        </button>
-      </form>
-      <div className="chips">
-        {suggestions.map((x) => (
-          <button
-            key={x}
-            onClick={() => navigate(`/chat?query=${encodeURIComponent(x)}`)}
-          >
-            {x}
-          </button>
-        ))}
-      </div>
-    </>
-  );
+  return <div className={large ? 'search-wrap search-large' : 'search-wrap'}>
+    <form className="search-box" onSubmit={(event) => { event.preventDefault(); submit(); }} role="search"><Search aria-hidden="true" size={22} /><label className="sr-only" htmlFor="service-search">{t('Search or ask a question')}</label><input id="service-search" value={query} onChange={(event) => { setQuery(event.target.value); setActive(-1); }} onKeyDown={onKeyDown} placeholder={t('Search or ask a question')} autoComplete="off" aria-controls="search-suggestions" aria-expanded={matches.length > 0} />{query && <button type="button" className="search-clear" onClick={() => setQuery('')} aria-label="Clear search"><X size={18} /></button>}<button className="button button-primary" type="submit">{t('Ask your question')}<ArrowRight size={18} /></button></form>
+    {matches.length > 0 && <ul id="search-suggestions" className="search-suggestions" role="listbox">{matches.map((item, index) => <li key={item} role="option" aria-selected={index === active}><button onMouseDown={(event) => event.preventDefault()} onClick={() => submit(item)}>{t(item)}<ChevronRight size={16} /></button></li>)}</ul>}
+  </div>;
 }
-function ResponsePreview() {
-  return (
-    <div className="response-preview">
-      <div className="response-top">
-        <span className="verified">
-          <ShieldCheck size={15} /> Verified guidance
-        </span>
-        <span>Just now</span>
-      </div>
-      <p className="question">“What documents do I need to renew my CNIC?”</p>
-      <div className="assistant-line">
-        <span className="avatar">P</span>
-        <p>
-          You’ll need your original CNIC and a recent photograph. Here’s the
-          complete checklist:
-        </p>
-      </div>
-      <div className="mini-checks">
-        {[
-          "Original CNIC",
-          "Recent photograph",
-          "Proof of address",
-          "Fee payment receipt",
-        ].map((x) => (
-          <div key={x}>
-            <Check size={15} />
-            {x}
-          </div>
-        ))}
-      </div>
-      <div className="info-strip">
-        <span>i</span> Requirements can vary by case. Verify at nadra.gov.pk
-      </div>
-    </div>
-  );
+
+function SectionHeading({ eyebrow, title, body, centered = false }: { eyebrow?: string; title: string; body?: string; centered?: boolean }) {
+  const { t } = useLanguage();
+  return <div className={centered ? 'section-heading centered' : 'section-heading'}>{eyebrow && <p className="eyebrow">{t(eyebrow)}</p>}<h2>{t(title)}</h2>{body && <p>{t(body)}</p>}</div>;
 }
-function Stats() {
-  return (
-    <div className="stats">
-      <div>
-        <b>
-          50,000<span>+</span>
-        </b>
-        <small>Citizens Guided</small>
-      </div>
-      <div>
-        <b>
-          200<span>+</span>
-        </b>
-        <small>Services Cataloged</small>
-      </div>
-      <div>
-        <b>24/7</b>
-        <small>Instant Availability</small>
-      </div>
-      <div>
-        <b>
-          EN <span>اردو</span>
-        </b>
-        <small>Bilingual Support</small>
-      </div>
-    </div>
-  );
-}
-const categoryData = [
-  [
-    "Passport Services",
-    "Your passport journey, clearly explained.",
-    "Passport",
-  ],
-  ["CNIC / NADRA", "Identity services without the confusion.", "CNIC/NADRA"],
-  ["Driving License", "From learner permit to renewal.", "Driving License"],
-  [
-    "Vehicle Registration",
-    "Transfer, tax and registration guidance.",
-    "Vehicle Registration",
-  ],
-  [
-    "Tax & FBR Assistance",
-    "Understand filing without the jargon.",
-    "Tax & Revenue",
-  ],
-  [
-    "Domicile & Certificates",
-    "The documents your next step needs.",
-    "Documents",
-  ],
-];
-function CategoryCard({ item }: { item: string[] }) {
-  const navigate = useNavigate();
-  const icons: Record<string, typeof FileText> = {
-    Passport: BookOpen,
-    "CNIC/NADRA": CreditCard,
-    "Driving License": CalendarDays,
-    "Vehicle Registration": FileText,
-    "Tax & Revenue": ShieldCheck,
-    Documents: Landmark,
-  };
-  const Icon = icons[item[2]] || FileText;
-  return (
-    <button
-      className="category-card"
-      onClick={() =>
-        navigate(`/services?category=${encodeURIComponent(item[2])}`)
-      }
-    >
-      <span className="icon-tile">
-        <Icon size={19} />
-      </span>
-      <span>
-        <b>{item[0]}</b>
-        <small>{item[1]}</small>
-      </span>
-      <ArrowRight size={17} />
-    </button>
-  );
-}
-function Stepper({
-  steps = [
-    "Eligibility",
-    "Documents",
-    "Application",
-    "Appointment",
-    "Completion",
-  ],
-  active = 1,
-}: {
-  steps?: string[];
-  active?: number;
-}) {
-  return (
-    <div className="stepper">
-      {steps.map((step, i) => (
-        <div className={`step ${i <= active ? "step-active" : ""}`} key={step}>
-          <span>{i < active ? <Check size={14} /> : i + 1}</span>
-          <small>{step}</small>
-          {i < steps.length - 1 && <i />}
-        </div>
-      ))}
-    </div>
-  );
-}
-function Home() {
-  return (
-    <>
-      <Header />
-      <main className="home-page">
-        <section className="hero">
-          <div className="container hero-grid">
-            <div className="hero-copy">
-              <small className="eyebrow">OFFICIAL CIVIC GUIDE</small>
-              <h1>
-                Government services,
-                <br />
-                <em>made simple.</em>
-              </h1>
-              <p>
-                Navigate passports, driving licenses, CNIC/NADRA paperwork, and
-                government appointments in clear English or Urdu. Accurate.
-                Safe. Built for all Pakistani citizens.
-              </p>
-              <HeroSearch />
-              <div className="hero-trust">
-                <ShieldCheck size={16} /> Independent guidance · Always verify
-                on official portals
-              </div>
-            </div>
-            <ResponsePreview />
-          </div>
-        </section>
-        <Stats />
-        <section className="section">
-          <div className="container">
-            <SectionHeader
-              overline="BROWSE CATEGORIES"
-              title="Popular Government Directories"
-            />
-            <div className="category-grid">
-              {categoryData.map((item) => (
-                <CategoryCard key={item[0]} item={item} />
-              ))}
-            </div>
-          </div>
-        </section>
-        <section className="section cream">
-          <div className="container">
-            <SectionHeader
-              overline="OUR PROCESS"
-              title="Demystifying bureaucracy in seconds"
-            />
-            <div className="process-grid">
-              {[
-                [
-                  "01",
-                  "Ask in plain language",
-                  "No complex bureaucratic terms. State your issue or question in English or Urdu just like you would to a helpful neighbor.",
-                ],
-                [
-                  "02",
-                  "Receive structured advice",
-                  "Get a clear step-by-step roadmap outlining the mandatory documents, verified fees, links to official portals, and locators.",
-                ],
-                [
-                  "03",
-                  "Take guided action",
-                  "Fill online forms, book pre-appointments, and track your applications directly with verified step guidance.",
-                ],
-              ].map(([num, title, text]) => (
-                <div className="process-card" key={num}>
-                  <span>{num}</span>
-                  <h3>{title}</h3>
-                  <p>{text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-        <section className="section journey">
-          <div className="container">
-            <SectionHeader
-              overline="VISUAL WALKTHROUGH"
-              title="Interactive Service Journeys"
-              description="Watch how we trace every official requirement and turn a chaotic manual procedure into an orderly sequence."
-            />
-            <Stepper />
-          </div>
-        </section>
-        <section className="section bilingual">
-          <div className="container bilingual-grid">
-            <div className="urdu-card" dir="rtl">
-              <span>دھوپ میں زبان میں رہنمائی</span>
-              <h3>شناختی کارڈ کی تجدید کیسے کریں؟</h3>
-              <p>آپ کا سوال، ہماری رہنمائی۔</p>
-              <div>
-                ◆ اپنا اصل شناختی کارڈ
-                <br />◆ حالیہ پاسپورٹ سائز تصویر
-                <br />◆ ضروری دستاویزات اپنے پاس رکھیں
-              </div>
-            </div>
-            <div>
-              <SectionHeader
-                overline="BILINGUAL ADVANTAGE"
-                title="Local context engine. Real-time translation."
-                description="No citizen should feel lost due to language barriers. PakAssist translates complex legal and bureaucratic terms instantly. Ask in English, read in Urdu, or vice-versa. Designed explicitly to serve diverse regions with absolute clarity."
-              />
-              <div className="button-row">
-                <Button onClick={() => {}}>Try Urdu Version</Button>
-                <Button variant="outline" onClick={() => {}}>
-                  Read Accessibility Mandate
-                </Button>
-              </div>
-            </div>
-          </div>
-        </section>
-        <section className="section gateway" id="trust">
-          <div className="container">
-            <SectionHeader
-              overline="OFFICIAL TRUST"
-              title="Verified Official Gateways"
-              description="We only reference directly sourced official federal and provincial portals. No third-party brokers."
-            />
-            <div className="gateway-grid">
-              {[
-                [
-                  "NADRA Pakistan Portal",
-                  "Direct access to register, modify and verify identity certificates.",
-                  "nadra.gov.pk",
-                ],
-                [
-                  "Directorate of Passports",
-                  "Official link to machine-readable and e-passport application procedures.",
-                  "dgip.gov.pk",
-                ],
-                [
-                  "Federal Board of Revenue",
-                  "The government body handling active taxpayers list and tax filing.",
-                  "fbr.gov.pk",
-                ],
-              ].map((x) => (
-                <a
-                  className="gateway-card"
-                  href={`https://${x[2]}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  key={x[0]}
-                >
-                  <b>{x[0]}</b>
-                  <small>{x[1]}</small>
-                  <span>{x[2]} ↗</span>
-                </a>
-              ))}
-            </div>
-          </div>
-        </section>
-      </main>
-      <Footer />
-    </>
-  );
-}
+
 function ServiceCard({ service }: { service: Service }) {
-  const icons: Record<string, typeof FileText> = {
-    Passport: BookOpen,
-    "CNIC/NADRA": CreditCard,
-    "Driving License": CalendarDays,
-    "Vehicle Registration": FileText,
-    "Tax & Revenue": ShieldCheck,
-    Documents: Landmark,
+  const { language, t } = useLanguage();
+  return <article className="service-card"><div className="service-icon" aria-hidden="true">{service.slug === 'passport' ? <FileText /> : <Building2 />}</div><p className="kicker">{t(service.category)}</p><h3>{language === 'ur' ? service.titleUrdu : service.title}</h3><p>{language === 'ur' ? service.descriptionUrdu : service.description}</p><Link className="text-link" to={`/services/${service.slug}`}>{t('View service')}<ArrowRight size={17} /></Link></article>;
+}
+
+function OfficialSources() {
+  const { t } = useLanguage();
+  return <section className="section official-section" id="official-sources"><div className="shell"><SectionHeading eyebrow="Official sources" title="Explore official sources" body="Direct links to the authorities behind the information." />
+    <div className="source-grid">{supportedServices.map((service) => <a className="official-card" href={service.officialUrl} target="_blank" rel="noreferrer" key={service.slug}><ShieldCheck aria-hidden="true" /><span><b className="ltr-text">{service.authority}</b><em>{t(service.officialScope)}</em><small className="ltr-text">{service.officialDomain}</small></span><ExternalLink size={17} aria-hidden="true" /></a>)}</div>
+  </div></section>;
+}
+
+function Home() {
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+  const suggestions = ['What documents do I need for a passport?', 'How much does a passport cost?', 'Find a driving licence office in Lahore'];
+  return <PageLayout>
+    <section className="hero"><div className="shell hero-inner"><p className="eyebrow"><ShieldCheck size={17} />{t('A clearer path through public services')}</p><h1>{t('Government services, explained clearly.')}</h1><p className="hero-lead">{t('Ask about passport or driving licence requirements, fees, offices, and your next step.')}</p><SearchBox large /><div className="prompt-row" aria-label="Suggested questions">{suggestions.map((item) => <button key={item} onClick={() => navigate(`/chat?q=${encodeURIComponent(item)}`)}>{t(item)}</button>)}</div></div></section>
+    <section className="trust-strip" aria-label="PakAssist principles"><div className="shell trust-grid"><div><ShieldCheck /><span><b>{t('Trusted guidance')}</b><small>{t('Grounded in curated government information')}</small></span></div><div><Globe2 /><span><b>{t('English and Urdu')}</b><small>{t('Switch language at any time')}</small></span></div><div><FileText /><span><b>{t('Your privacy')}</b><small>{t('Uploads stay within the current session')}</small></span></div></div></section>
+    <section className="section"><div className="shell"><SectionHeading eyebrow="Supported assistance" title="Supported services" body="Focused help for two common citizen journeys." /><div className="service-grid">{supportedServices.map((service) => <ServiceCard service={service} key={service.slug} />)}</div></div></section>
+    <section className="section steps-section"><div className="shell"><SectionHeading title="How it works" body="Three simple steps from question to next action." centered /><div className="steps-grid">{[[CircleHelp,'Start with a question','PakAssist identifies the service and what you need.'],[ShieldCheck,'Check trusted information','Answers use curated knowledge and show their sources.'],[Check,'Take the next step','Get a checklist, fee guidance, office options, or a demo appointment.']].map(([Icon,title,body], index) => { const StepIcon = Icon as typeof CircleHelp; return <article className="step-card" key={title as string}><span className="step-number">0{index + 1}</span><StepIcon aria-hidden="true" /><h3>{t(title as string)}</h3><p>{t(body as string)}</p></article>; })}</div></div></section>
+    <section className="section"><div className="shell cta-panel"><div><h2>{t('Ready to find your next step?')}</h2><p>{t('Open the assistant and ask in your own words.')}</p></div><Link className="button button-light" to="/chat">{t('Ask PakAssist')}<ArrowRight size={18} /></Link></div></section>
+    <OfficialSources />
+  </PageLayout>;
+}
+
+function ServicesPage() {
+  const { language, t } = useLanguage();
+  const [query, setQuery] = useState('');
+  const filtered = supportedServices.filter((service) => `${service.title} ${service.titleUrdu} ${service.category}`.toLowerCase().includes(query.toLowerCase()));
+  return <PageLayout><section className="page-hero"><div className="shell narrow"><p className="eyebrow">{t('Supported assistance')}</p><h1>{t('Services')}</h1><p>{t('Focused guidance where PakAssist currently has a dedicated knowledge and action flow.')}</p><div className="inline-search"><Search size={20} /><label className="sr-only" htmlFor="services-filter">{t('Filter services')}</label><input id="services-filter" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('Search or ask a question')} />{query && <button onClick={() => setQuery('')} aria-label="Clear filter"><X size={18} /></button>}</div></div></section>
+    <section className="section compact-top"><div className="shell">{filtered.length ? <div className="service-grid">{filtered.map((service) => <ServiceCard service={service} key={service.slug} />)}</div> : <div className="empty-state"><Search /><h2>{t('No matching service')}</h2><p>{t('Try passport or driving licence, or ask PakAssist directly.')}</p><Link className="button button-primary" to="/chat">{t('Ask PakAssist')}</Link></div>}</div></section>
+    <section className="section directory-section"><div className="shell"><SectionHeading title="Other government resources" body="These are official directory links, not PakAssist agent workflows." /><div className="directory-grid">{directoryResources.map((resource) => <a href={resource.url} target="_blank" rel="noreferrer" className="directory-card" key={resource.name}><span><b>{language === 'ur' ? resource.nameUrdu : resource.name}</b><small>{language === 'ur' ? resource.descriptionUrdu : resource.description}</small><em className="ltr-text">{resource.domain}</em></span><ExternalLink size={18} /></a>)}</div></div></section>
+  </PageLayout>;
+}
+
+function ServiceDetail() {
+  const { slug } = useParams(); const service = slug ? getServiceBySlug(slug) : undefined; const { language, t } = useLanguage();
+  if (!service) return <PageLayout><section className="page-hero"><div className="shell narrow"><h1>{t('Service not found')}</h1><Link className="text-link" to="/services">{t('Back to services')}<ArrowRight size={17} /></Link></div></section></PageLayout>;
+  return <PageLayout><section className="detail-hero"><div className="shell detail-grid"><div><Link className="back-link" to="/services">← {t('Back to services')}</Link><p className="eyebrow">{t(service.category)}</p><h1>{language === 'ur' ? service.titleUrdu : service.title}</h1><p className="hero-lead">{language === 'ur' ? service.descriptionUrdu : service.description}</p><Link className="button button-primary" to={`/chat?q=${encodeURIComponent(service.prompts[0])}`}>{t('Ask PakAssist')}<ArrowRight size={18} /></Link></div><aside className="authority-card"><ShieldCheck /><p>{t('Source authority')}</p><h2>{service.authority}</h2><a href={service.officialUrl} target="_blank" rel="noreferrer">{t('Official website')}<ExternalLink size={17} /></a></aside></div></section>
+    <section className="section"><div className="shell detail-content"><div><SectionHeading title="What PakAssist can help with" /><ul className="check-list">{service.capabilities.map((item) => <li key={item}><Check size={18} />{t(item)}</li>)}</ul></div><div><SectionHeading title="Example questions" /><div className="question-list">{service.prompts.map((prompt) => <Link to={`/chat?q=${encodeURIComponent(prompt)}`} key={prompt}>{t(prompt)}<ArrowRight size={17} /></Link>)}</div></div></div><div className="shell"><p className="notice"><ShieldCheck size={18} />{t('This prototype does not submit government applications or make real bookings. Always confirm time-sensitive details on the official website.')}</p></div></section>
+  </PageLayout>;
+}
+
+type ChatMessage = { id: string; role: 'user' | 'assistant'; text: string; result?: ChatResponse; error?: boolean };
+const acceptedTypes = ['image/jpeg','image/png','image/webp','application/pdf'];
+
+function SourceList({ sources }: { sources: Source[] }) {
+  const { t } = useLanguage();
+  if (!sources.length) return <p className="no-sources"><CircleHelp size={16} />{t('No sources were returned for this response.')}</p>;
+  return <div className="response-sources" aria-label="Response sources">{sources.map((source) => { const content = <><span className={`source-kind ${source.kind}`}><ShieldCheck size={14} />{t(source.kind === 'official' ? 'Official source' : 'Uploaded document')}</span><b>{source.title}</b>{source.detail && <small className="ltr-text">{source.detail}</small>}</>; return source.url ? <a href={source.url} target="_blank" rel="noreferrer" key={source.id}>{content}<ExternalLink size={16} /></a> : <div className="source-item" key={source.id}>{content}</div>; })}</div>;
+}
+
+function ResponseExtras({ result }: { result: ChatResponse }) {
+  const { t } = useLanguage();
+  if (result.journey) return <div className="journey-card"><div className="component-label">{t('Local journey preview')}</div><h4>{result.journey.service}</h4><ol>{result.journey.steps.map((step, index) => <li key={step.label}><span>{index + 1}</span><b>{step.label}</b><small>{t('Not reviewed')}</small></li>)}</ol></div>;
+  if (result.appointment) return <div className="appointment-card"><div><span className="component-label">{t('Demo appointment')}</span><h4>{result.appointment.office}</h4><p>{result.appointment.date} · {result.appointment.time}</p></div><span className="status-pill">{t('Not booked')}</span></div>;
+  return null;
+}
+
+function MessageActions({ messageId, text }: { messageId: string; text: string }) {
+  const { t } = useLanguage();
+  const [copied, setCopied] = useState(false);
+  const copyResponse = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
   };
-  const Icon = icons[service.category] || FileText;
-  return (
-    <Link to={`/services/${service.slug}`} className="service-card">
-      <div className="service-card-top">
-        <span className="icon-tile">
-          <Icon size={19} />
-        </span>
-        <span className="badge available">Available</span>
-      </div>
-      <small>{service.category}</small>
-      <h3>{service.title}</h3>
-      <p>{service.description}</p>
-      <span className="card-link">
-        View guide <ArrowRight size={15} />
-      </span>
-    </Link>
-  );
+  return <div className="message-actions" aria-label={t('Response actions')}>
+    <ReadAloudButton target={{ type: 'message', id: messageId }} text={text} compact />
+    <button type="button" className="message-action-button" onClick={copyResponse} aria-label={t(copied ? 'Response copied' : 'Copy response')} title={t(copied ? 'Response copied' : 'Copy response')}>{copied ? <CheckCheck size={16} /> : <Copy size={16} />}<span>{t(copied ? 'Copied' : 'Copy')}</span></button>
+  </div>;
 }
-function Services() {
-  const [params] = useSearchParams();
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState(
-    params.get("category") || "All Services",
-  );
-  const filtered = services.filter(
-    (s) =>
-      (category === "All Services" || s.category === category) &&
-      `${s.title} ${s.description}`.toLowerCase().includes(query.toLowerCase()),
-  );
-  return (
-    <>
-      <Header />
-      <main>
-        <section className="page-band">
-          <div className="container">
-            <small className="eyebrow">YOUR NEXT STEP</small>
-            <h1>Government Services</h1>
-            <p>
-              Find clear, practical guidance for the services that matter to
-              you.
-            </p>
-          </div>
-        </section>
-        <section className="section services-page">
-          <div className="container">
-            <div className="directory-toolbar">
-              <div className="directory-search">
-                <Search size={18} />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search services..."
-                />
-              </div>
-              <span className="result-count">{filtered.length} services</span>
-            </div>
-            <div className="filter-pills">
-              {["All Services", ...categories].map((x) => (
-                <button
-                  className={category === x ? "selected" : ""}
-                  onClick={() => setCategory(x)}
-                  key={x}
-                >
-                  {x}
-                </button>
-              ))}
-            </div>
-            {filtered.length ? (
-              <div className="service-grid">
-                {filtered.map((s) => (
-                  <ServiceCard key={s.slug} service={s} />
-                ))}
-              </div>
-            ) : (
-              <div className="empty-state">
-                <Search size={28} />
-                <h3>No services found</h3>
-                <p>Try another search or clear the category filter.</p>
-                <button
-                  onClick={() => {
-                    setQuery("");
-                    setCategory("All Services");
-                  }}
-                >
-                  Clear filters
-                </button>
-              </div>
-            )}
-          </div>
-        </section>
-      </main>
-      <Footer />
-    </>
-  );
+
+function ChatPage() {
+  const { language, t } = useLanguage(); const [params] = useSearchParams();
+  const voiceUi = useVoiceUi();
+  const [session, setSession] = useState<Session | null>(null); const [messages, setMessages] = useState<ChatMessage[]>([]); const [input, setInput] = useState(params.get('q') ?? ''); const [upload, setUpload] = useState<Upload | undefined>(); const [loading, setLoading] = useState(false); const [fileError, setFileError] = useState(''); const [lastRequest, setLastRequest] = useState<{ text: string; upload?: Upload }>();
+  const fileRef = useRef<HTMLInputElement>(null); const endRef = useRef<HTMLDivElement>(null); const inputId = useId();
+  useEffect(() => { createSession().then(setSession); }, []);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
+  useEffect(() => () => { if (upload?.previewUrl) URL.revokeObjectURL(upload.previewUrl); }, [upload]);
+  const chooseFile = (file?: File) => { setFileError(''); if (!file) return; if (!acceptedTypes.includes(file.type)) { setFileError('Choose a JPG, PNG, WEBP, or PDF file.'); return; } if (file.size > 10 * 1024 * 1024) { setFileError('Choose a file smaller than 10 MB.'); return; } if (upload?.previewUrl) URL.revokeObjectURL(upload.previewUrl); setUpload({ id: crypto.randomUUID(), file, name: file.name, size: file.size, mediaType: file.type, previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined }); };
+  const runSend = async (text: string, selectedUpload?: Upload) => { if (!session || (!text.trim() && !selectedUpload) || loading) return; const clean = text.trim() || 'Please inspect this uploaded document.'; setMessages((current) => [...current, { id: crypto.randomUUID(), role: 'user', text: clean }]); setInput(''); setUpload(undefined); setLoading(true); setLastRequest({ text: clean, upload: selectedUpload }); try { const result = await sendChatMessage({ sessionId: session.id, message: clean, language, upload: selectedUpload }); setMessages((current) => [...current, { id: crypto.randomUUID(), role: 'assistant', text: result.response, result }]); } catch { setMessages((current) => [...current, { id: crypto.randomUUID(), role: 'assistant', text: t('PakAssist is temporarily unavailable. Please try again.'), error: true }]); } finally { setLoading(false); } };
+  const clearChat = async () => { setMessages([]); setInput(''); setUpload(undefined); setFileError(''); setSession(await createSession()); };
+  return <PageLayout><section className="chat-page"><div className="shell chat-shell"><div className="chat-heading"><div><p className="eyebrow">{t('Private session')}</p><h1>{t('PakAssist conversation')}</h1><p>{t('Local interface preview · backend not connected')}</p></div><button className="button button-quiet" onClick={clearChat} disabled={!messages.length && !input}><Trash2 size={18} />{t('Clear chat')}</button></div>
+    <div className="chat-panel"><div className="messages" aria-live="polite">{messages.length === 0 && !loading && <div className="chat-empty"><span className="empty-mark"><MessageCircle /></span><h2>{t('Welcome to PakAssist')}</h2><p>{t('Ask a question to begin. You can also attach one image or PDF for the current message.')}</p><div className="suggestion-grid">{supportedServices.flatMap((service) => service.prompts.slice(0, 2)).map((prompt) => <button onClick={() => setInput(prompt)} key={prompt}>{t(prompt)}<ArrowRight size={16} /></button>)}</div></div>}
+      {messages.map((message) => <article className={`message ${message.role} ${message.error ? 'error' : ''}`} key={message.id}><span className="message-role">{message.role === 'user' ? t('You') : 'PakAssist'}</span><div className="message-bubble" id={`message-${message.id}`}><p>{message.text}</p>{message.result && <><ResponseExtras result={message.result} /><SourceList sources={message.result.sources} />{message.result.suggestions && <div className="followups">{message.result.suggestions.map((suggestion) => <button onClick={() => setInput(suggestion)} key={suggestion}>{t(suggestion)}</button>)}</div>}</>}{message.error && lastRequest && <button className="text-button" onClick={() => runSend(lastRequest.text, lastRequest.upload)}>{t('Try again')}</button>}</div>{message.role === 'assistant' && !message.error && <MessageActions messageId={message.id} text={message.text} />}</article>)}
+      {loading && <div className="message assistant"><span className="message-role">PakAssist</span><div className="message-bubble loading-bubble"><span /><span /><span /><em>{t(lastRequest?.upload ? 'Processing document…' : 'PakAssist is preparing a response')}</em></div></div>}<div ref={endRef} /></div>
+      <div className="composer-wrap">{upload && <div className="upload-preview">{upload.previewUrl ? <img src={upload.previewUrl} alt="Attachment preview" /> : <FileText /> }<span><b className="ltr-text">{upload.name}</b><small>{(upload.size / 1024 / 1024).toFixed(1)} MB · Local preview</small></span><button onClick={() => setUpload(undefined)} aria-label={t('Remove attachment')}><X size={18} /></button></div>}{fileError && <p className="field-error" role="alert">{fileError}</p>}
+        <form className="composer" onSubmit={(event: FormEvent) => { event.preventDefault(); runSend(input, upload); }}><label className="sr-only" htmlFor={inputId}>{t('Type your message')}</label><textarea id={inputId} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); runSend(input, upload); } }} placeholder={t('Type your message')} rows={2} /><input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" hidden onChange={(event) => { chooseFile(event.target.files?.[0]); event.currentTarget.value = ''; }} /><button type="button" className="icon-button" onClick={() => fileRef.current?.click()} aria-label={t('Attach a file')} title={t('Attach a file')}><Paperclip /></button><VoiceButton /><button className="send-button" type="submit" disabled={loading || !session || (!input.trim() && !upload)} aria-label={t('Send message')} title={t('Send message')}><Send /></button></form>{voiceUi.voiceState !== 'idle' && voiceUi.voiceState !== 'disabled' && <p id="voice-input-status" className={`voice-feedback ${voiceUi.voiceState}`} role={voiceUi.voiceState === 'error' ? 'alert' : 'status'}>{t(voiceUi.voiceState === 'listening' ? 'Listening…' : voiceUi.voiceState === 'processing' ? 'Processing voice…' : 'Voice input could not be started. You can continue typing.')}</p>}<p className="composer-note">JPG, PNG, WEBP or PDF · max 10 MB · one file per message</p></div>
+    </div></div></section></PageLayout>;
 }
-function Detail() {
-  const { slug } = useParams();
-  const service = getService(slug || "");
-  const [checked, setChecked] = useState<string[]>([]);
-  if (!service)
-    return (
-      <>
-        <Header />
-        <div className="container not-found">
-          <h1>Service not found</h1>
-          <Link to="/services">Return to services</Link>
-        </div>
-      </>
-    );
-  return (
-    <>
-      <Header />
-      <main>
-        <section className="detail-head">
-          <div className="container">
-            <Link className="breadcrumb" to="/services">
-              Services <ChevronRight size={14} /> {service.category}
-            </Link>
-            <div className="detail-title">
-              <div>
-                <span className="badge available">
-                  <ShieldCheck size={14} /> Available
-                </span>
-                <h1>{service.title}</h1>
-                <p>{service.authority}</p>
-              </div>
-              <Button
-                onClick={() =>
-                  alert(
-                    "This mock action would open the official application gateway.",
-                  )
-                }
-              >
-                Start online application
-              </Button>
-            </div>
-            <Stepper />
-          </div>
-        </section>
-        <section className="section">
-          <div className="container detail-layout">
-            <div className="detail-content">
-              <article className="content-block">
-                <SectionHeader
-                  overline="BEFORE YOU BEGIN"
-                  title="Eligibility checklist"
-                />
-                {service.eligibility.map((x) => (
-                  <div className="check-row" key={x}>
-                    <span>
-                      <Check size={15} />
-                    </span>
-                    {x}
-                  </div>
-                ))}
-              </article>
-              <article className="content-block">
-                <SectionHeader
-                  overline="PREPARE AHEAD"
-                  title="Required documents"
-                  description="Tap a document once you have it ready."
-                />
-                <div className="document-grid">
-                  {service.documents.map((x) => (
-                    <button
-                      className={`document-card ${checked.includes(x) ? "checked" : ""}`}
-                      key={x}
-                      onClick={() =>
-                        setChecked(
-                          checked.includes(x)
-                            ? checked.filter((y) => y !== x)
-                            : [...checked, x],
-                        )
-                      }
-                    >
-                      <span>
-                        {checked.includes(x) ? <Check /> : <FileText />}
-                      </span>
-                      <b>{x}</b>
-                      <small>
-                        {checked.includes(x) ? "Ready" : "Tap to mark ready"}
-                      </small>
-                    </button>
-                  ))}
-                </div>
-              </article>
-              <article className="content-block">
-                <SectionHeader
-                  overline="COSTS & TIMELINES"
-                  title="Fee schedule"
-                />
-                <div className="fee-table">
-                  <div className="fee-row fee-head">
-                    <span>Delivery category</span>
-                    <span>Processing fee</span>
-                    <span>Timeline</span>
-                  </div>
-                  {service.fees.map((f) => (
-                    <div className="fee-row" key={f.type}>
-                      <b>{f.type}</b>
-                      <span>{f.amount}</span>
-                      <span>{f.timeline}</span>
-                    </div>
-                  ))}
-                </div>
-              </article>
-              <article className="content-block">
-                <SectionHeader
-                  overline="YOUR ROADMAP"
-                  title="Application process"
-                />
-                {service.processSteps.map((x, i) => (
-                  <div className="guideline" key={x}>
-                    <span>{String(i + 1).padStart(2, "0")}</span>
-                    <div>
-                      <b>{x}</b>
-                      <p>
-                        Keep your information accurate and ask the office to
-                        clarify anything that differs in your case.
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </article>
-            </div>
-            <aside className="detail-aside">
-              <div className="ask-card">
-                <span className="avatar large">P</span>
-                <span className="badge verified-badge">
-                  <ShieldCheck size={14} /> Verified
-                </span>
-                <h3>Have a question about this guide?</h3>
-                <p>
-                  Ask PakAssist for a simpler explanation or a personalized
-                  checklist.
-                </p>
-                <Button onClick={() => (location.href = "/chat")}>
-                  Ask PakAssist AI
-                </Button>
-              </div>
-              <div className="related">
-                <small>RELATED SERVICES</small>
-                {service.relatedServices.map((title) => {
-                  const r = services.find((x) => x.title === title);
-                  return r ? (
-                    <Link to={`/services/${r.slug}`} key={title}>
-                      {title}
-                      <ArrowRight size={15} />
-                    </Link>
-                  ) : null;
-                })}
-              </div>
-            </aside>
-          </div>
-        </section>
-      </main>
-      <Footer />
-    </>
-  );
-}
-type ChatMsg = { from: "user" | "assistant"; text: string };
-function AssistantResponse() {
-  return (
-    <div className="assistant-response">
-      <p>For a passport renewal, you’ll generally need these items ready:</p>
-      <div className="chat-checklist">
-        {[
-          "Original CNIC",
-          "Previous passport",
-          "Recent passport photograph",
-          "Proof of address",
-        ].map((x) => (
-          <div key={x}>
-            <Check size={14} />
-            {x}
-          </div>
-        ))}
-      </div>
-      <div className="info-callout">
-        <strong>Good to know</strong>
-        <br />
-        Fees and timelines depend on the processing category you choose. Verify
-        the latest fee on dgip.gov.pk.
-      </div>
-      <small className="source">
-        <ShieldCheck size={13} /> Source: Directorate General of Immigration &
-        Passports — dgip.gov.pk
-      </small>
-    </div>
-  );
-}
-function Chat() {
-  const [params] = useSearchParams();
-  const initial = params.get("query");
-  const [messages, setMessages] = useState<ChatMsg[]>(
-    initial
-      ? [
-          { from: "user", text: initial },
-          {
-            from: "assistant",
-            text: "Here is a clear starting point for your question.",
-          },
-        ]
-      : [
-          {
-            from: "user",
-            text: "What documents do I need to renew my passport?",
-          },
-          {
-            from: "assistant",
-            text: "For a passport renewal, you’ll generally need these items ready:",
-          },
-        ],
-  );
-  const [input, setInput] = useState("");
-  const [title, setTitle] = useState(initial || "Passport Renewal");
-  const send = (text = input.trim()) => {
-    if (!text) return;
-    setMessages([
-      ...messages,
-      { from: "user", text },
-      {
-        from: "assistant",
-        text: "Here is a practical guide based on the information available. I’ll keep the next steps clear and actionable.",
-      },
-    ]);
-    setTitle(text);
-    setInput("");
-  };
-  return (
-    <>
-      <Header />
-      <main className="chat-page">
-        <aside className="chat-sidebar">
-          <Logo />
-          <Button
-            onClick={() => {
-              setMessages([]);
-              setTitle("New conversation");
-            }}
-          >
-            New chat
-          </Button>
-          <div className="sidebar-search">
-            <Search size={15} /> Search chats
-          </div>
-          <small>PINNED TOPICS</small>
-          <Link to="/services/passport-renewal">
-            <FileText size={15} /> Passport renewal
-          </Link>
-          <Link to="/services/cnic-renewal">
-            <ClipboardCheck size={15} /> CNIC renewal
-          </Link>
-          <small>RECENT CHATS</small>
-          <span className="chat-date">TODAY</span>
-          <button className="chat-history active">Passport Renewal</button>
-          <button className="chat-history">FBR tax filer guide</button>
-          <span className="chat-date">YESTERDAY</span>
-          <button className="chat-history">Learner permit requirements</button>
-        </aside>
-        <section className="chat-main">
-          <div className="chat-toolbar">
-            <div>
-              <span className="online-dot" /> <b>{title}</b>
-              <small>AI Agent Active</small>
-            </div>
-            <button className="language">
-              <Globe2 size={14} /> EN / اردو
-            </button>
-          </div>
-          <div className="message-thread">
-            {messages.length === 0 ? (
-              <div className="chat-empty">
-                <Sparkles size={30} />
-                <h2>What can we help you navigate?</h2>
-                <p>Ask about a government service in plain language.</p>
-              </div>
-            ) : (
-              messages.map((m, i) => (
-                <div className={`message ${m.from}`} key={`${m.text}-${i}`}>
-                  {m.from === "assistant" && <span className="avatar">P</span>}
-                  <div className="bubble">
-                    <p>{m.text}</p>
-                    {m.from === "assistant" && <AssistantResponse />}
-                  </div>
-                </div>
-              ))
-            )}
-            {messages.length > 0 && (
-              <div className="followups">
-                <span>Continue with</span>
-                {[
-                  "Normal or Urgent?",
-                  "Adult or Minor?",
-                  "Islamabad or Other City?",
-                ].map((x) => (
-                  <button key={x} onClick={() => send(x)}>
-                    {x}
-                    <ArrowRight size={13} />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <form
-            className="chat-input"
-            onSubmit={(e) => {
-              e.preventDefault();
-              send();
-            }}
-          >
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a follow-up question..."
-            />
-            <span>Attachments coming soon</span>
-            <button aria-label="Send message">
-              <ArrowRight />
-            </button>
-          </form>
-        </section>
-      </main>
-    </>
-  );
-}
+
 function Dashboard() {
-  const [notice, setNotice] = useState("");
-  const action = (text: string) => {
-    setNotice(`${text} is a mock action for now.`);
-    setTimeout(() => setNotice(""), 2800);
-  };
-  return (
-    <>
-      <Header />
-      <main>
-        <section className="dashboard-head">
-          <div className="container">
-            <small className="eyebrow">YOUR PAKASSIST</small>
-            <h1>Welcome back, Ahmed</h1>
-            <p>Here’s a quick view of your civic service journey.</p>
-          </div>
-        </section>
-        <section className="section dashboard-section">
-          <div className="container">
-            <div className="dash-stats">
-              {[
-                ["3", "Active Applications", "Across 2 services"],
-                ["5 / 8", "Documents Prepared", "Passport Renewal"],
-                ["1", "Upcoming Appointment", "Islamabad · 18 Jun"],
-              ].map((x) => (
-                <div className="dash-stat" key={x[1]}>
-                  <span>{x[0]}</span>
-                  <b>{x[1]}</b>
-                  <small>{x[2]}</small>
-                </div>
-              ))}
-            </div>
-            <div className="dashboard-layout">
-              <div>
-                <div className="panel-heading">
-                  <div>
-                    <small>IN PROGRESS</small>
-                    <h2>Your applications</h2>
-                  </div>
-                  <button onClick={() => action("Track application")}>
-                    View all <ArrowRight size={15} />
-                  </button>
-                </div>
-                <div className="applications">
-                  {[
-                    [
-                      "Passport Renewal",
-                      "PA-20481",
-                      "Updated 2 hours ago",
-                      "In Progress",
-                    ],
-                    [
-                      "CNIC Renewal",
-                      "PA-20392",
-                      "Updated 3 days ago",
-                      "Under Review",
-                    ],
-                    [
-                      "Domicile Certificate",
-                      "PA-19833",
-                      "Completed 12 May",
-                      "Completed",
-                    ],
-                  ].map((x) => (
-                    <div className="application-row" key={x[1]}>
-                      <span className="app-icon">
-                        <FileText size={18} />
-                      </span>
-                      <div>
-                        <b>{x[0]}</b>
-                        <small>
-                          {x[1]} · {x[2]}
-                        </small>
-                      </div>
-                      <span
-                        className={`badge ${x[3].toLowerCase().replace(" ", "-")}`}
-                      >
-                        {x[3]}
-                      </span>
-                      <ChevronRight size={17} />
-                    </div>
-                  ))}
-                </div>
-                <div className="panel-heading checklist-heading">
-                  <div>
-                    <small>DOCUMENT CHECKLIST</small>
-                    <h2>Passport Renewal</h2>
-                  </div>
-                  <span>5 of 8 ready</span>
-                </div>
-                <div className="progress">
-                  <span style={{ width: "62.5%" }} />
-                </div>
-              </div>
-              <aside className="dash-side">
-                <div className="appointment">
-                  <small>NEXT APPOINTMENT</small>
-                  <h3>Passport Office</h3>
-                  <p>Blue Area, Islamabad</p>
-                  <b>18 June 2025 · 10:30 AM</b>
-                  <div>
-                    <button onClick={() => action("Reschedule")}>
-                      Reschedule
-                    </button>
-                    <button onClick={() => action("Cancel")}>Cancel</button>
-                  </div>
-                </div>
-                <div className="quick">
-                  <small>QUICK ACTIONS</small>
-                  {[
-                    ["Ask PakAssist AI", "Open chat"],
-                    ["Track application", "Register"],
-                    ["Book appointment", "Schedule"],
-                    ["Saved documents", "Access"],
-                  ].map((x) => (
-                    <button onClick={() => action(x[0])} key={x[0]}>
-                      <span>{x[1]}</span>
-                      <b>{x[0]}</b>
-                      <ArrowRight size={15} />
-                    </button>
-                  ))}
-                </div>
-              </aside>
-            </div>
-          </div>
-        </section>
-      </main>
-      {notice && (
-        <div className="toast">
-          <Check size={16} />
-          {notice}
-        </div>
-      )}
-      <Footer />
-    </>
-  );
+  const { t } = useLanguage();
+  return <PageLayout><section className="page-hero"><div className="shell narrow"><p className="eyebrow">{t('Session overview')}</p><h1>{t('My PakAssist Journey')}</h1><p>{t('A private, session-based view of the guidance steps you review.')}</p></div></section><section className="section compact-top"><div className="shell dashboard-layout"><div className="empty-state journey-empty"><span className="empty-mark"><FileText /></span><h2>{t('No active journey yet')}</h2><p>{t('Start a chat about a passport or driving licence. Journey progress will appear here after backend integration.')}</p><Link className="button button-primary" to="/chat">{t('Start a journey')}<ArrowRight size={18} /></Link></div><aside className="privacy-card"><ShieldCheck /><h2>{t('Your privacy')}</h2><p>{t('Journey information is designed for the current session. This frontend does not contain government application records.')}</p></aside></div></section></PageLayout>;
 }
-function InfoPage({ kind }: { kind: "how" | "about" }) {
-  const [faq, setFaq] = useState(0);
-  const faqs = [
-    "Is PakAssist an official government entity?",
-    "Is the service completely free to use?",
-    "What departments and services are currently covered?",
-    "How accurate is the information provided by the AI?",
-    "Can I ask questions and receive guides in Urdu?",
-  ];
-  if (kind === "about")
-    return (
-      <>
-        <Header />
-        <main>
-          <section className="page-band">
-            <div className="container">
-              <small className="eyebrow">OUR IDENTITY</small>
-              <h1>About PakAssist</h1>
-              <p>
-                Building calmer, clearer pathways through everyday civic life.
-              </p>
-            </div>
-          </section>
-          <section className="section">
-            <div className="container mission-grid">
-              <div>
-                <small className="eyebrow">THE MISSION</small>
-                <h2>Bridging the gap between citizens and civic duties.</h2>
-                <p>
-                  PakAssist is open-source civic technology designed to make
-                  public service information easier to understand and act on, in
-                  English and Urdu.
-                </p>
-              </div>
-              <div className="impact">
-                <small>OUR CIVIC IMPACT TARGETS</small>
-                {[
-                  "Protecting citizens from fraudulent brokers",
-                  "Democratic access in English & Urdu",
-                  "Reducing hours lost in administrative lookup",
-                ].map((x, i) => (
-                  <div key={x}>
-                    <span>0{i + 1}</span>
-                    {x}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-          <section className="section cream">
-            <div className="container">
-              <SectionHeader
-                overline="THE EVERYDAY REALITY"
-                title="Civic tasks shouldn’t feel like detective work."
-              />
-              <div className="reality-grid">
-                {[
-                  [
-                    "Scattered guidelines",
-                    "Information lives across too many offices and websites.",
-                  ],
-                  [
-                    "Unclear costs & challans",
-                    "Fees, timelines and requirements can be hard to compare.",
-                  ],
-                  [
-                    "Exploitative agents",
-                    "Confusion creates space for avoidable middlemen.",
-                  ],
-                ].map((x) => (
-                  <div className="plain-card" key={x[0]}>
-                    <span className="icon-tile">
-                      <Gauge size={18} />
-                    </span>
-                    <h3>{x[0]}</h3>
-                    <p>{x[1]}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-          <section className="section">
-            <div className="container">
-              <SectionHeader
-                overline="WHAT GUIDES US"
-                title="Useful first. Always honest."
-              />
-              <div className="principles">
-                {[
-                  [
-                    "Accurate Information",
-                    "We organize guidance and point you back to the official source.",
-                  ],
-                  [
-                    "Plain Language",
-                    "We remove jargon without removing the details that matter.",
-                  ],
-                  [
-                    "Step-by-Step Guidance",
-                    "A clear next step is more useful than a wall of information.",
-                  ],
-                ].map((x) => (
-                  <div key={x[0]}>
-                    <span>✦</span>
-                    <h3>{x[0]}</h3>
-                    <p>{x[1]}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-          <section className="section cream">
-            <div className="container">
-              <SectionHeader
-                overline="CIVIC ROADMAP"
-                title="Growing with the people we serve."
-              />
-              <div className="roadmap">
-                {[
-                  "PHASE 1 — Advanced Urdu Engine",
-                  "PHASE 2 — WhatsApp Voice Assistant",
-                  "PHASE 3 — Interactive Booking Integration",
-                ].map((x, i) => (
-                  <div key={x}>
-                    <span>0{i + 1}</span>
-                    <b>{x}</b>
-                    <small>{i === 0 ? "In progress" : "Planned next"}</small>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-          <section className="closing">
-            <div>
-              <small>OPEN-SOURCE CIVIC TECHNOLOGY</small>
-              <h2>
-                Built by Citizens,
-                <br />
-                For Citizens.
-              </h2>
-            </div>
-            <Link to="/services" className="btn btn-outline">
-              Explore services <ArrowRight size={16} />
-            </Link>
-          </section>
-        </main>
-        <Footer />
-      </>
-    );
-  return (
-    <>
-      <Header />
-      <main>
-        <section className="page-band">
-          <div className="container">
-            <small className="eyebrow">STEP-BY-STEP SYSTEM</small>
-            <h1>How PakAssist Works</h1>
-            <p>
-              A simpler way to understand the service journey before you take
-              action.
-            </p>
-          </div>
-        </section>
-        <section className="section">
-          <div className="container">
-            <div className="how-cards">
-              {[
-                ["01", "INPUT", "Ask your question"],
-                ["02", "ANALYSIS", "Get expert guidance"],
-                ["03", "ACTION", "Take confident action"],
-              ].map((x) => (
-                <div className="how-card" key={x[0]}>
-                  <span>{x[0]}</span>
-                  <small>{x[1]}</small>
-                  <h2>{x[2]}</h2>
-                  <div className="snippet">
-                    <Search size={15} /> Passport documents{" "}
-                    <ArrowRight size={14} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-        <section className="section cream">
-          <div className="container">
-            <SectionHeader
-              overline="CORE FUNCTIONS"
-              title="Everything you need to move forward"
-            />
-            <div className="function-grid">
-              {[
-                "Document Requirements",
-                "Fee Information",
-                "Office Locations",
-                "Appointment Booking",
-                "Application Tracking",
-                "Process Timelines",
-              ].map((x) => (
-                <div key={x}>
-                  <Check size={17} />
-                  <b>{x}</b>
-                  <ArrowRight size={15} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-        <section className="section">
-          <div className="container transparency">
-            <ShieldCheck size={24} />
-            <div>
-              <small>TRANSPARENCY NOTICE</small>
-              <h2>
-                Independent guidance, with official sources at the center.
-              </h2>
-              <p>
-                PakAssist is independent and is not a government portal. We
-                cannot process payments or submit applications. Always verify
-                final information on official .gov.pk portals.
-              </p>
-            </div>
-          </div>
-        </section>
-        <section className="section faq-section cream">
-          <div className="container">
-            <SectionHeader overline="COMMON QUESTIONS" title="Good to know" />
-            <div className="faqs">
-              {faqs.map((x, i) => (
-                <div className={`faq ${faq === i ? "open" : ""}`} key={x}>
-                  <button onClick={() => setFaq(faq === i ? -1 : i)}>
-                    <b>{x}</b>
-                    <ChevronDown size={18} />
-                  </button>
-                  {faq === i && (
-                    <p>
-                      {i === 0
-                        ? "No. PakAssist is an independent civic-tech advisory and navigation platform."
-                        : i === 1
-                          ? "The guidance is free to use. Official fees, where applicable, are always listed separately."
-                          : i === 2
-                            ? "We currently cover passports, identity, driving, vehicle, tax, domicile and character certificate services."
-                            : i === 3
-                              ? "We structure mock guidance for this frontend and point you to official sources for verification."
-                              : "Yes. You can ask questions in English or اردو."}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      </main>
-      <Footer />
-    </>
-  );
+
+function HowItWorks() {
+  const { t } = useLanguage();
+  return <PageLayout><section className="page-hero"><div className="shell narrow"><p className="eyebrow">{t('Built for clear next steps')}</p><h1>{t('How PakAssist works')}</h1><p>{t('A focused assistant for navigating selected public services.')}</p></div></section><section className="section compact-top"><div className="shell prose-layout"><div><h2>{t('From a question to useful guidance')}</h2><div className="vertical-steps">{[['01','Ask naturally','Write in English or Urdu. You can name the service now or clarify it in the conversation.'],['02','Review grounded help','The connected backend can retrieve trusted information, format checklists, and retain the active service during a session.'],['03','Choose a next step','Continue to fees, office options, journey progress, or a clearly labelled demo appointment flow.']].map(([n,title,body]) => <article key={n}><span>{n}</span><div><h3>{t(title)}</h3><p>{t(body)}</p></div></article>)}</div></div><aside className="info-panel"><h2>{t('What it does not do')}</h2><ul><li>{t('Submit a government application')}</li><li>{t('Guarantee fees, availability, or processing time')}</li><li>{t('Create a real appointment')}</li><li>{t('Replace an official authority')}</li></ul><Link className="button button-primary" to="/chat">{t('Ask PakAssist')}</Link></aside></div></section></PageLayout>;
 }
-export default function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/services" element={<Services />} />
-      <Route path="/services/:slug" element={<Detail />} />
-      <Route path="/chat" element={<Chat />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/how-it-works" element={<InfoPage kind="how" />} />
-      <Route path="/about" element={<InfoPage kind="about" />} />
-      <Route path="*" element={<Home />} />
-    </Routes>
-  );
+
+function About() {
+  const { t } = useLanguage();
+  return <PageLayout><section className="page-hero"><div className="shell narrow"><p className="eyebrow">{t('Citizen-first design')}</p><h1>{t('About PakAssist')}</h1><p>{t('PakAssist is a prototype citizen-assistance experience for selected Pakistani public services.')}</p></div></section><section className="section compact-top"><div className="shell about-grid"><article><Globe2 /><h2>{t('What this prototype includes')}</h2><p>{t('English and Urdu guidance, trusted-source visibility, session-based follow-ups, document-upload interfaces, service-centre lookup, journey progress, and demo appointment interactions for supported services.')}</p></article><article><CircleHelp /><h2>{t('Current limitations')}</h2><p>{t('The frontend is currently a local UI preview and is not connected to the PakAssist backend. Coverage is limited, driving-licence office data is incomplete, and details may change.')}</p></article><article><ShieldCheck /><h2>{t('Privacy and uploads')}</h2><p>{t('Uploaded files are intended for temporary session use. This interface does not provide long-term accounts or government record storage.')}</p></article><article><FileText /><h2>{t('Prototype disclaimer')}</h2><p>{t('PakAssist is not a government authority. It does not submit applications, calculate GPS distance, check live government systems, or make real bookings.')}</p></article></div></section></PageLayout>;
+}
+
+function NotFound() { return <PageLayout><section className="page-hero"><div className="shell narrow"><p className="eyebrow">404</p><h1>Page not found</h1><p>The page you requested is not available.</p><Link className="button button-primary" to="/">Return home</Link></div></section></PageLayout>; }
+
+export default function App({ voiceUi = disconnectedVoiceUi }: AppProps) {
+  const [language, setLanguage] = useState<Language>(getInitialLanguage);
+  const location = useLocation();
+  useEffect(() => applyLanguage(language), [language]);
+  useEffect(() => {
+    if (location.hash) window.requestAnimationFrame(() => document.querySelector(location.hash)?.scrollIntoView());
+    else window.scrollTo({ top: 0 });
+  }, [location.pathname, location.hash]);
+  const value = { language, setLanguage, t: (text: string) => translate(language, text) };
+  return <LanguageContext.Provider value={value}><VoiceUiContext.Provider value={voiceUi}><Routes><Route path="/" element={<Home />} /><Route path="/services" element={<ServicesPage />} /><Route path="/services/:slug" element={<ServiceDetail />} /><Route path="/chat" element={<ChatPage />} /><Route path="/dashboard" element={<Dashboard />} /><Route path="/how-it-works" element={<HowItWorks />} /><Route path="/about" element={<About />} /><Route path="*" element={<NotFound />} /></Routes></VoiceUiContext.Provider></LanguageContext.Provider>;
 }
