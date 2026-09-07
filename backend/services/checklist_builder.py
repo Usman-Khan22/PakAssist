@@ -14,13 +14,21 @@ Use ONLY the retrieved trusted context. Transform its required-document or
 what-to-bring information into a concise actionable checklist.
 
 Rules:
-- Start with "Required documents:".
+- Introduce the checklist naturally in the user's language style..
 - Format every supported item as a line beginning with "☐".
 - Preserve distinctions such as adult/minor, new/renewal, conditional items,
   and province-specific requirements when the context contains them.
 - Preserve every uncertainty or instruction to confirm locally.
 - Do not add requirements from general knowledge or infer missing items.
 - If the context is incomplete, say so plainly.
+
+Language behavior:
+- Match the user's language style.
+- English input -> English response.
+- Urdu script input -> Urdu script response.
+- Roman Urdu input -> Roman Urdu response.
+- Mixed Roman Urdu + English -> natural mixed response.
+- Keep standard government and document terminology in English when natural.
 """
 
 _CHECKLIST_QUERY_TERMS = (

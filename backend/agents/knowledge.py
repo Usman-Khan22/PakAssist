@@ -20,6 +20,7 @@ import os
 from pathlib import Path
 from typing import List
 
+from backend.graph import state
 from backend.graph.state import PakAssistState, SourceRef
 from backend.rag.loader import RagDocument
 from backend.rag.multimodal import extract_text_from_image, extract_text_from_pdf
@@ -70,6 +71,22 @@ _UPLOAD_INSPECTION_TERMS = (
 
 _GENERATION_SYSTEM_PROMPT = """You are PakAssist's Knowledge answer generator.
 
+Conversation behavior:
+- Greet the user only at the beginning of a new conversation, not on every reply.
+- If the user greets first, respond to the greeting naturally before helping.
+- For English conversations, use a simple greeting such as "Hello" or "Hi".
+- For Urdu, Roman Urdu, or mixed Urdu-English conversations, use a natural greeting such as "Assalam-o-Alaikum" when appropriate.
+- Do not repeatedly greet the user in follow-up turns.
+
+Conversation behavior:
+- Match the user's language style naturally.
+- If instructed that the user greeted you, acknowledge the greeting briefly.
+- Do not greet the user unless the conversation instruction tells you to.
+- Never repeatedly greet the user on normal follow-up messages.
+- If the user says "Assalam-o-Alaikum" or a Roman Urdu equivalent, a natural
+  response is "Wa Alaikum Assalam".
+- Keep greetings short so the useful answer remains the focus.
+
 Rules you must follow:
 - Answer using ONLY the information in the "Retrieved context" below.
 - Do not invent, assume, or fill in any government requirement, fee, or
@@ -82,6 +99,20 @@ Rules you must follow:
   services to fill gaps — if the context doesn't support a claim, don't
   make it.
 - Keep the answer concise and directly useful to the citizen asking.
+
+Language behavior:
+- If the user writes primarily in English, reply in English.
+- If the user writes primarily in Urdu script, reply in natural Urdu script.
+- If the user uses Roman Urdu, reply in natural Roman Urdu.
+- If the user mixes Roman Urdu and English, reply in a natural Pakistani
+  Roman Urdu / English mix.
+- Keep official, technical, and government-service terms in English when
+  that is clearer or more natural.
+- Examples include CNIC, NICOP, Passport, Driving Licence, PSID,
+  Fee Challan, Medical Fitness Certificate, Renewal, Urgent, Normal,
+  Executive Passport Office, and NADRA.
+- Do not force awkward Urdu translations for standard technical terms.
+- Match the user's language style rather than translating everything into Urdu.
 """
 
 _index_dir_retriever_cache = {}
@@ -181,23 +212,33 @@ def _chunks_to_source_refs(chunks: List[RetrievedChunk]) -> List[SourceRef]:
 
 
 def _call_gemini(
-    query: str, context_block: str, system_prompt: str = _GENERATION_SYSTEM_PROMPT
+    query: str,
+    context_block: str,
+    system_prompt: str = _GENERATION_SYSTEM_PROMPT,
+    conversation_instruction: str = "",
 ) -> str:
     from google.genai import types
 
     client = _get_client()
     model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-    prompt = f"Retrieved context:\n{context_block}\n\nCitizen's question:\n{query}"
 
-    # No `tools=`, AFC explicitly disabled — same fix as the Planner.
+    prompt = (
+        f"Retrieved context:\n{context_block}\n\n"
+        f"Citizen's question:\n{query}\n\n"
+        f"Conversation instruction:\n{conversation_instruction}"
+    )
+
     response = client.models.generate_content(
         model=model_name,
         contents=prompt,
         config=types.GenerateContentConfig(
             system_instruction=system_prompt,
-            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(
+                disable=True
+            ),
         ),
     )
+
     return (response.text or "").strip()
 
 
@@ -289,9 +330,39 @@ def knowledge_agent(
             return state
         source_chunks = reliable_fee_chunks
         system_prompt = FEE_SYSTEM_PROMPT
+    
+        is_first_turn = state.get("is_first_turn", False)
 
+        query_lower = query.casefold()
+
+        greeting_words = (
+            "hello",
+            "hi",
+            "hey",
+            "salam",
+            "salaam",
+            "assalamualaikum",
+            "assalam o alaikum",
+            "السلام علیکم",
+        )
+
+        user_greeted = any(
+            greeting in query_lower
+            for greeting in greeting_words
+        )
+
+        if is_first_turn and user_greeted:
+            conversation_instruction = (
+                "This is the first turn and the user greeted you. "
+                "Respond to the greeting naturally in the user's language style, "
+                "then answer their question. Do not make the greeting lengthy."
+            )
+        else:
+            conversation_instruction = (
+                "Do not add a greeting. Answer the user's question directly."
+            )
     context_block = _build_context_block(source_chunks)
-    answer = _call_gemini(query, context_block, system_prompt=system_prompt)
+    answer = _call_gemini(query, context_block, system_prompt=system_prompt, conversation_instruction=conversation_instruction,)
 
     state["response"] = answer or NO_CONTEXT_MESSAGE
     state["sources"] = _chunks_to_source_refs(source_chunks)

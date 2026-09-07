@@ -1,0 +1,330 @@
+[
+  {
+    "province": "Islamabad Capital Territory",
+    "office_name": "ITP License Branch, Shakarparian",
+    "address": "Islamabad Traffic Police License Branch, Shakarparian, Islamabad",
+    "phone": null,
+    "hours": "Mon-Fri (per general govt office timing; confirm exact hours on portal)",
+    "required_docs": [
+      "Original CNIC + photocopy",
+      "Passport-size photographs",
+      "Medical Form-B attested by a government medical officer",
+      "Learner's permit (for permanent license stage)",
+      "Proof of fee payment"
+    ],
+    "services": [
+      "Learner permit",
+      "Permanent license",
+      "Renewal",
+      "Duplicate",
+      "Online appointment booking",
+      "License verification"
+    ],
+    "portal": "https://islamabadpolice.gov.pk/itp",
+    "confidence": "High - office name and services confirmed via official ITP site",
+    "source": "https://islamabadpolice.gov.pk/itp/license-verification.php"
+  },
+  {
+    "province": "Punjab",
+    "office_name": "Attock Driving Licensing Branch",
+    "address": "DSP Traffic Office, Saddar Bazar, Attock Cantt.",
+    "phone": "0579-316006",
+    "email": "attock.dlb@gmail.com",
+    "hours": "Not confirmed - check trafficpolice.punjab.gov.pk/licensing_offices",
+    "required_docs": [
+      "Original CNIC + photocopy",
+      "Passport-size photographs",
+      "Proof of fee payment (PSID/challan)",
+      "Learner's permit (for permanent license stage)"
+    ],
+    "services": [
+      "Learner permit",
+      "Permanent license",
+      "Renewal"
+    ],
+    "portal": "https://dlims.punjab.gov.pk",
+    "confidence": "High - sourced from official Punjab Traffic Police site listing",
+    "source": "https://trafficpolice.punjab.gov.pk/licensing_offices"
+  },
+  {
+    "province": "Punjab",
+    "office_name": "Bhakkar Driving Licensing Branch",
+    "address": "Driving Licensing Branch, DPO Office, Bhakkar.",
+    "phone": "0453-9200357",
+    "email": "bhakkar.dlb@gmail.com",
+    "hours": "Not confirmed - check trafficpolice.punjab.gov.pk/licensing_offices",
+    "required_docs": [
+      "Original CNIC + photocopy",
+      "Passport-size photographs",
+      "Proof of fee payment (PSID/challan)",
+      "Learner's permit (for permanent license stage)"
+    ],
+    "services": [
+      "Learner permit",
+      "Permanent license",
+      "Renewal"
+    ],
+    "portal": "https://dlims.punjab.gov.pk",
+    "confidence": "High - sourced from official Punjab Traffic Police site listing",
+    "source": "https://trafficpolice.punjab.gov.pk/licensing_offices"
+  },
+  {
+    "province": "Sindh",
+    "office_name": "Sindh Police Driving License Department (province-wide, online-first)",
+    "address": "Applications processed via DLS Online; physical front-desk verification at Sindh Police driving license centers in Karachi, Hyderabad, Sukkur and other districts (exact branch addresses not yet confirmed against an official list)",
+    "phone": null,
+    "hours": "Not confirmed",
+    "required_docs": [
+      "Original CNIC (temporary CNIC with Sindh address accepted)",
+      "Photograph",
+      "Medical examination (in person)",
+      "Proof of fee payment"
+    ],
+    "services": [
+      "Learner permit (Form E, online)",
+      "Permanent license (road test required)",
+      "Renewal",
+      "Verification"
+    ],
+    "portal": "https://dlsonline.sindhpolice.gov.pk",
+    "confidence": "Medium - process confirmed via official-adjacent sources (dls.gos.pk, sindhpolice.gov.pk); exact branch-level addresses not yet independently verified",
+    "source": "https://dls.gos.pk/ ; https://www.sindhpolice.gov.pk/quickmenus/driving_License.html"
+  },
+  {
+    "province": "Khyber Pakhtunkhwa",
+    "office_name": "KP Excise, Taxation & Transport Department (province-wide)",
+    "address": "Not confirmed - managed by district Excise & Taxation offices",
+    "phone": null,
+    "hours": "Not confirmed",
+    "required_docs": [
+      "Original CNIC + photocopy",
+      "Photograph",
+      "Proof of fee payment"
+    ],
+    "services": [
+      "Learner license registration",
+      "Driving license application",
+      "Test booking",
+      "Renewal"
+    ],
+    "portal": "Not confirmed - a digital system referred to as 'DASTAK' was mentioned in secondary sources but not independently verified",
+    "confidence": "Low - department-level only, needs direct verification",
+    "source": "Secondary/aggregator sources only; flagged for follow-up"
+  },
+  {
+    "province": "Balochistan",
+    "office_name": "Balochistan Excise & Taxation Department (province-wide)",
+    "address": "Not confirmed",
+    "phone": null,
+    "hours": "Not confirmed",
+    "required_docs": [
+      "Original CNIC + photocopy",
+      "Photograph",
+      "Proof of fee payment"
+    ],
+    "services": [
+      "Learner permit",
+      "Permanent license",
+      "Renewal"
+    ],
+    "portal": "No dedicated online portal confirmed during this research pass",
+    "confidence": "Low - no reliable branch-level or portal data found; needs direct verification with the department",
+    "source": "Not confirmed"
+  },
+  {
+    "province": "Punjab",
+    "office_name": "CTPL Licensing Center, Manawan",
+    "address": "Manawan Traffic Police Lines / Police Training College, Manawan, Lahore",
+    "phone": "042-99332181 (license queries), 042-99030130 (appointments)",
+    "hours": "Reported as 9:00 AM - 12:00 AM, open Sundays (this exact overnight-sounding time is exactly as published by the source and looks like it may be a typo for 12:00 PM - flag for confirmation before quoting to a user)",
+    "required_docs": [
+      "Original CNIC + photocopy",
+      "Passport-size photographs",
+      "Proof of fee payment (PSID/challan)",
+      "Learner's permit (for permanent license stage)"
+    ],
+    "services": [
+      "Learner permit",
+      "Regular/permanent driving license",
+      "Duplicate license",
+      "Renewal",
+      "International Driving Permit"
+    ],
+    "portal": "https://ctplahore.gop.pk",
+    "confidence": "High - office, phone numbers, and services confirmed via the official City Traffic Police Lahore (.gop.pk) website; hours cross-checked against a secondary source with matching wording",
+    "source": "https://ctplahore.gop.pk/license-centers ; https://ctplahore.gop.pk/contact-us",
+    "note": "Lahore has many additional smaller booths/facilitation centers (e.g. Liberty, DHA, Thokar Niaz Baig, Ichhra, Green Town, Wapda Town) reported across sources, but Manawan is the main licensing center confirmed directly on the official CTP Lahore site. Full booth list should be transcribed from ctplahore.gop.pk/license-centers directly if needed - that page blocks automated fetching."
+  },
+  {
+    "province": "Punjab",
+    "office_name": "Rawalpindi Licensing Office, Traffic Headquarters",
+    "address": "License Office, Traffic Headquarters, Main Peshawar Road, Westridge 2, Rawalpindi, Punjab 46000",
+    "phone": "(051) 9272616",
+    "hours": "Monday-Sunday, 8:00 AM - 4:00 PM. Commercial vehicle license test: 2nd, 3rd & 4th Tuesday, subject to Motor Vehicle Examiner (MVE) availability. HTV test every Thursday; PSV test first Thursday of the month.",
+    "required_docs": [
+      "Original CNIC + photocopy",
+      "Passport-size photographs",
+      "Proof of fee payment (PSID/challan)",
+      "Learner's permit (for permanent license stage)"
+    ],
+    "services": [
+      "Learner permit",
+      "Permanent license",
+      "Renewal",
+      "Duplicate",
+      "HTV/PSV/Commercial license testing"
+    ],
+    "portal": "https://ctprwp.gop.pk",
+    "confidence": "High - confirmed directly on the official City Traffic Police Rawalpindi (.gop.pk) site, including detailed test-day schedule",
+    "source": "https://ctprwp.gop.pk/public-services/driving-license-centers/"
+  },
+  {
+    "province": "Punjab",
+    "office_name": "Faisalabad Licensing Office (City Traffic Police)",
+    "address": "Near PS Faisalabad Civil Line, Kachehry Chowk, Circular Road, Faisalabad (CTO office); separate licensing counters reported near Zila Council Chowk and Katchery Bazaar",
+    "phone": "041-9201325 (licensing office)",
+    "hours": "Not confirmed",
+    "required_docs": [
+      "Original CNIC + photocopy",
+      "Passport-size photographs",
+      "Proof of fee payment (PSID/challan)",
+      "Learner's permit (for permanent license stage)"
+    ],
+    "services": [
+      "Learner permit",
+      "Permanent license",
+      "Renewal",
+      "Endorsements"
+    ],
+    "portal": "https://dlims.punjab.gov.pk",
+    "confidence": "Medium - phone/address combination sourced from an unofficial directory reproducing what claims to be Traffic Police Punjab contact info; not independently confirmed on a .gov.pk/.gop.pk page",
+    "source": "https://thepunjabtrafficpolice.weebly.com/contact-us.html (unofficial domain, used for cross-reference only - verify before publishing as fact)"
+  },
+  {
+    "province": "Punjab",
+    "office_name": "Multan Licensing Office (City Traffic Police)",
+    "address": "Police Lines No. 1 Chowk, Kachehry, CTO Office, Multan; a separate licensing counter reported at Gulgasht Colony",
+    "phone": "0333-7897777 (licensing office, as reported)",
+    "hours": "Not confirmed",
+    "required_docs": [
+      "Original CNIC + photocopy",
+      "Passport-size photographs",
+      "Proof of fee payment (PSID/challan)",
+      "Learner's permit (for permanent license stage)"
+    ],
+    "services": [
+      "Learner permit",
+      "Permanent license",
+      "Duplicate"
+    ],
+    "portal": "https://dlims.punjab.gov.pk",
+    "confidence": "Medium - same unofficial-directory caveat as Faisalabad above",
+    "source": "https://thepunjabtrafficpolice.weebly.com/contact-us.html (unofficial domain, used for cross-reference only - verify before publishing as fact)"
+  },
+  {
+    "province": "Punjab",
+    "office_name": "Gujranwala Licensing Office (City Traffic Police)",
+    "address": "DC Road, RPO Gujranwala; a separate licensing counter reported near Jinnah Stadium, Gujranwala Cantt",
+    "phone": "055-9239180 (licensing office, as reported)",
+    "hours": "Not confirmed",
+    "required_docs": [
+      "Original CNIC + photocopy",
+      "Passport-size photographs",
+      "Proof of fee payment (PSID/challan)",
+      "Learner's permit (for permanent license stage)"
+    ],
+    "services": [
+      "Learner permit",
+      "Permanent license"
+    ],
+    "portal": "https://dlims.punjab.gov.pk",
+    "confidence": "Medium - same unofficial-directory caveat as Faisalabad above",
+    "source": "https://thepunjabtrafficpolice.weebly.com/contact-us.html (unofficial domain, used for cross-reference only - verify before publishing as fact)"
+  },
+  {
+    "province": "Sindh",
+    "office_name": "DLS Clifton Branch, Karachi",
+    "address": "Zamzama Street No. 11, near Do Talwar, Clifton, Karachi",
+    "phone": null,
+    "hours": "Not confirmed",
+    "required_docs": [
+      "Original CNIC (temporary CNIC with Sindh address accepted)",
+      "Photograph",
+      "Medical examination (in person)",
+      "Proof of fee payment"
+    ],
+    "services": [
+      "Learner permit (Form E, online)",
+      "Permanent license (road test required)",
+      "Renewal",
+      "Verification"
+    ],
+    "portal": "https://dlsonline.sindhpolice.gov.pk",
+    "confidence": "Medium-High - address published on the Driving License Sindh contact page (dls.gos.pk), a provincial-government-linked domain, though not the .sindhpolice.gov.pk domain itself",
+    "source": "https://dls.gos.pk/contact-us.html"
+  },
+  {
+    "province": "Sindh",
+    "office_name": "DLS Nazimabad Branch, Karachi",
+    "address": "Old Fire Brigade Station Building, Petrol Pump, Nazimabad, Karachi",
+    "phone": null,
+    "hours": "Not confirmed",
+    "required_docs": [
+      "Original CNIC (temporary CNIC with Sindh address accepted)",
+      "Photograph",
+      "Medical examination (in person)",
+      "Proof of fee payment"
+    ],
+    "services": [
+      "Learner permit (Form E, online)",
+      "Permanent license (road test required)",
+      "Renewal",
+      "Verification"
+    ],
+    "portal": "https://dlsonline.sindhpolice.gov.pk",
+    "confidence": "Medium-High - same source as Clifton Branch above",
+    "source": "https://dls.gos.pk/contact-us.html"
+  },
+  {
+    "province": "Khyber Pakhtunkhwa",
+    "office_name": "District Transport Office, Peshawar",
+    "address": "Main G.T. Road, near Peshawar Bus Terminal, Peshawar",
+    "phone": "091-9225311",
+    "hours": "Not confirmed",
+    "required_docs": [
+      "Original CNIC + photocopy",
+      "Photograph",
+      "Proof of fee payment"
+    ],
+    "services": [
+      "Learner license registration",
+      "Driving license application",
+      "Test booking",
+      "Renewal"
+    ],
+    "portal": "Directorate of Transport, KP - https://directorate_of_transport.kp.gov.pk (a separate third-party-looking domain, transport.kpdata.gov.pk.onl, also surfaced during research claiming to be a KP Transport verification portal; its '.gov.pk.onl' domain pattern is a red flag - it is NOT a real .gov.pk address and should be treated as unverified/potentially unofficial, not linked or recommended to users)",
+    "confidence": "Medium - address and phone confirmed on an official-looking kp.gov.pk domain page, but not independently cross-verified against a second official source",
+    "source": "https://directorate_of_transport.kp.gov.pk/page/facility"
+  },
+  {
+    "province": "Balochistan",
+    "office_name": "Excise & Taxation Department, Quetta - Motor Registering Authority",
+    "address": "Excise & Taxation Department, Quetta, Balochistan (exact street address not confirmed)",
+    "phone": "081-9211373 (Non-Commercial Vehicles), 081-9211377 (Commercial Vehicles)",
+    "hours": "Not confirmed",
+    "required_docs": [
+      "Original CNIC + photocopy",
+      "Photograph",
+      "Proof of fee payment"
+    ],
+    "services": [
+      "Learner permit",
+      "Permanent license",
+      "Renewal",
+      "Vehicle registration (Motor Registering Authority also handles this)"
+    ],
+    "portal": "A dedicated system referred to as 'DLIMS Quetta' / dlsquetta.pk was found during research but could not be independently confirmed as an official government domain - verify before directing users to it",
+    "confidence": "Low-Medium - phone numbers sourced from a third-party business-directory site reproducing department contact info, not fetched directly from a .gov.pk page",
+    "source": "https://www.quetta1.ebizpk.com/excise-and-taxation-quetta.htm (unofficial directory, cross-reference only)"
+  }
+]

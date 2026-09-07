@@ -161,9 +161,57 @@ def _action_node(state: PakAssistState) -> dict:
 
 
 def _clarification_node(state: PakAssistState) -> dict:
-    """Ask for clarification when the request cannot be routed safely."""
-    return {"response": "Please clarify which government service you need."}
+    query = state.get("user_input", "").strip()
+    query_lower = query.casefold()
 
+    greeting_words = (
+        "hello",
+        "hi",
+        "hey",
+        "salam",
+        "salaam",
+        "assalamualaikum",
+        "assalam o alaikum",
+        "السلام علیکم",
+    )
+
+    user_greeted = any(
+        greeting in query_lower
+        for greeting in greeting_words
+    )
+
+    is_first_turn = state.get(
+        "is_first_turn",
+        False
+    )
+
+    if is_first_turn and user_greeted:
+        if (
+            "salam" in query_lower
+            or "salaam" in query_lower
+            or "assalamualaikum" in query_lower
+            or "assalam o alaikum" in query_lower
+            or "السلام علیکم" in query_lower
+        ):
+            return {
+                "response": (
+                    "Wa Alaikum Assalam! Main PakAssist hoon. "
+                    "Aap kis government service ke baare mein madad chahte hain?"
+                )
+            }
+
+        return {
+            "response": (
+                "Hello! I'm PakAssist. "
+                "Which government service can I help you with?"
+            )
+        }
+
+    return {
+        "response": (
+            "Please clarify which government service you need help with."
+        )
+    }
 
 def _route_after_planner(state: PakAssistState) -> str:
     """Select a downstream node from the Planner's validated decision."""

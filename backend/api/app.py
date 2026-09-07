@@ -1,16 +1,13 @@
-import logging
 import os
+import shutil
 import tempfile
 from uuid import uuid4
 
-from fastapi import (
-    FastAPI,
-    File,
-    Form,
-    HTTPException,
-    UploadFile,
-)
+import httpx
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
+from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
 from backend.agents.planner import PlannerError
@@ -22,9 +19,6 @@ from backend.api.schemas import (
 )
 
 
-logger = logging.getLogger(__name__)
-
-
 ALLOWED_EXTENSIONS = {
     ".pdf",
     ".png",
@@ -32,16 +26,6 @@ ALLOWED_EXTENSIONS = {
     ".jpeg",
     ".webp",
 }
-
-MAX_UPLOAD_SIZE_MB = int(
-    os.getenv("MAX_UPLOAD_SIZE_MB", "10")
-)
-
-MAX_UPLOAD_SIZE_BYTES = (
-    MAX_UPLOAD_SIZE_MB * 1024 * 1024
-)
-
-UPLOAD_CHUNK_SIZE = 1024 * 1024
 
 
 app = FastAPI(
@@ -64,6 +48,11 @@ app.add_middleware(
 
 
 sessions = set()
+sessions_with_messages = set()
+
+
+class TTSRequest(BaseModel):
+    text: str
 
 
 @app.get("/health")
@@ -73,12 +62,77 @@ def health():
     }
 
 
+@app.post("/voice/tts")
+async def voice_tts(request: TTSRequest):
+    text = request.text.strip()
+
+    if not text:
+        raise HTTPException(
+            status_code=400,
+            detail="Text cannot be empty",
+        )
+
+    if len(text) > 5000:
+        raise HTTPException(
+            status_code=400,
+            detail="Text cannot exceed 5000 characters",
+        )
+
+    api_key = os.getenv("OPENROUTER_API_KEY")
+
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Text-to-speech is not configured",
+        )
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            openrouter_response = await client.post(
+                "https://openrouter.ai/api/v1/audio/speech",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "fish-audio/s2.1-pro-free:free",
+                    "input": text,
+                    "response_format": "mp3",
+                },
+            )
+
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Text-to-speech provider is unavailable",
+        ) from exc
+
+    if not openrouter_response.is_success:
+        print(
+            "OpenRouter TTS error:",
+            openrouter_response.status_code,
+            openrouter_response.text,
+        )
+
+        raise HTTPException(
+            status_code=502,
+            detail="Text-to-speech generation failed",
+        )
+
+    return Response(
+        content=openrouter_response.content,
+        media_type="audio/mpeg",
+        headers={
+            "Cache-Control": "no-store"
+        },
+    )
+
+
 @app.post(
     "/sessions",
     response_model=SessionResponse,
 )
 def create_session():
-
     session_id = uuid4().hex
 
     sessions.add(session_id)
@@ -92,8 +146,7 @@ def create_session():
     "/chat",
     response_model=ChatResponse,
 )
-def chat(request: ChatRequest):
-
+async def chat(request: ChatRequest):
     if request.session_id not in sessions:
         raise HTTPException(
             status_code=404,
@@ -106,33 +159,37 @@ def chat(request: ChatRequest):
             detail="Message cannot be empty",
         )
 
+    is_first_turn = (
+        request.session_id not in sessions_with_messages
+    )
+
     try:
-        result = invoke_graph(
-            message=request.message,
-            session_id=request.session_id,
-        )
-
-    except PlannerError:
-        logger.exception(
-            "Planner failed during chat request. session_id=%s",
+        result = await run_in_threadpool(
+            invoke_graph,
+            request.message,
             request.session_id,
+            None,
+            is_first_turn,
         )
 
+    except PlannerError as exc:
+        print("Planner error:", exc)
         raise HTTPException(
             status_code=502,
-            detail="Planner service failed",
-        )
+            detail=f"Planner failed: {exc}",
+        ) from exc
 
-    except Exception:
-        logger.exception(
-            "Unexpected error while processing chat. session_id=%s",
-            request.session_id,
-        )
+    except Exception as exc:
+        print("PakAssist chat error:", exc)
 
         raise HTTPException(
             status_code=500,
             detail="PakAssist failed to process the request",
-        )
+        ) from exc
+
+    sessions_with_messages.add(
+        request.session_id
+    )
 
     return {
         "session_id": request.session_id,
@@ -150,137 +207,85 @@ async def upload_file(
     file: UploadFile = File(...),
     message: str = Form(...),
 ):
+    if session_id not in sessions:
+        raise HTTPException(
+            status_code=404,
+            detail="Session not found",
+        )
+
+    if not message.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide a question about the uploaded file",
+        )
+
+    if not file.filename:
+        raise HTTPException(
+            status_code=400,
+            detail="File name is missing",
+        )
+
+    extension = os.path.splitext(
+        file.filename
+    )[1].lower()
+
+    if extension not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported file type",
+        )
+
+    is_first_turn = (
+        session_id not in sessions_with_messages
+    )
 
     temp_path = None
 
     try:
-        if session_id not in sessions:
-            raise HTTPException(
-                status_code=404,
-                detail="Session not found",
-            )
-
-        if not message.strip():
-            raise HTTPException(
-                status_code=400,
-                detail="Please provide a question about the uploaded file",
-            )
-
-        if not file.filename:
-            raise HTTPException(
-                status_code=400,
-                detail="File name is missing",
-            )
-
-        extension = os.path.splitext(
-            file.filename
-        )[1].lower()
-
-        if extension not in ALLOWED_EXTENSIONS:
-            raise HTTPException(
-                status_code=400,
-                detail="Unsupported file type",
-            )
-
-        total_size = 0
-
         with tempfile.NamedTemporaryFile(
             delete=False,
             suffix=extension,
         ) as temp_file:
 
+            shutil.copyfileobj(
+                file.file,
+                temp_file,
+            )
+
             temp_path = temp_file.name
-
-            while True:
-
-                chunk = await file.read(
-                    UPLOAD_CHUNK_SIZE
-                )
-
-                if not chunk:
-                    break
-
-                total_size += len(chunk)
-
-                if total_size > MAX_UPLOAD_SIZE_BYTES:
-                    raise HTTPException(
-                        status_code=413,
-                        detail=(
-                            f"File exceeds the "
-                            f"{MAX_UPLOAD_SIZE_MB} MB limit"
-                        ),
-                    )
-
-                temp_file.write(chunk)
 
         result = await run_in_threadpool(
             invoke_graph,
             message,
             session_id,
             [temp_path],
+            is_first_turn,
+        )
+
+        sessions_with_messages.add(
+            session_id
         )
 
         return {
             "session_id": session_id,
-            "response": result.get(
-                "response",
-                "",
-            ),
-            "sources": result.get(
-                "sources"
-            ) or [],
+            "response": result.get("response", ""),
+            "sources": result.get("sources") or [],
         }
 
-    except HTTPException:
-        raise
-
-    except PlannerError:
-        logger.exception(
-            "Planner failed while processing upload. "
-            "session_id=%s filename=%s",
-            session_id,
-            file.filename,
-        )
-
+    except PlannerError as exc:
         raise HTTPException(
             status_code=502,
-            detail="Planner service failed",
-        )
+            detail=f"Planner failed: {exc}",
+        ) from exc
 
-    except Exception:
-        logger.exception(
-            "Unexpected upload processing error. "
-            "session_id=%s filename=%s",
-            session_id,
-            file.filename,
-        )
+    except Exception as exc:
+        print("PakAssist upload error:", exc)
 
         raise HTTPException(
             status_code=500,
             detail="PakAssist failed to process the uploaded file",
-        )
+        ) from exc
 
     finally:
-
-        try:
-            await file.close()
-
-        except Exception:
-            logger.warning(
-                "Failed to close uploaded file. "
-                "session_id=%s",
-                session_id,
-                exc_info=True,
-            )
-
         if temp_path and os.path.exists(temp_path):
-
-            try:
-                os.remove(temp_path)
-
-            except OSError:
-                logger.warning(
-                    "Failed to delete temporary upload file: %s",
-                    temp_path,
-                    exc_info=True,
-                )
+            os.remove(temp_path)
