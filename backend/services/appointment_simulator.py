@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Literal
 
 
-_SLOT_DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "appointment_slots.json"
+_SLOT_DATA_PATH = Path(__file__).resolve().parents[2] / "knowledge_base" / "appointment_slots.json"
 
 
 @dataclass(frozen=True)

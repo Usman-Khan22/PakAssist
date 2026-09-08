@@ -1,6 +1,7 @@
 """Deterministic Appointment Simulator and Action integration tests."""
 
 from unittest.mock import patch
+import pytest
 
 from langgraph.checkpoint.memory import InMemorySaver
 
@@ -8,6 +9,27 @@ from backend.agents.action import action_agent
 from backend.agents.planner import PlannerOutput
 from backend.graph.graph import build_graph
 from backend.services.appointment_simulator import book_slot, check_slots
+
+
+@pytest.mark.parametrize("query", [
+    "find me available slots in karachi for passport office Karachi-I (South)",
+    "Show available slots for Karachi-I (South) passport office",
+    "Show available slots for Karachi-I (South) in Karachi",
+])
+def test_explicit_city_and_office_slots(query):
+    result = action_agent({"user_input": query, "intent": "check_slots", "service_type": "passport"})
+    assert result["selected_office"] == "Karachi-I (South)"
+    assert "10:00" in result["response"]
+    assert "Simulated prototype availability" in result["response"]
+
+
+def test_conflicting_city_and_office_does_not_select_office():
+    result = action_agent({
+        "user_input": "Show slots in Atlantis for passport office Karachi-I (South)",
+        "intent": "check_slots", "service_type": "passport",
+    })
+    assert "couldn't find" in result["response"]
+    assert not result.get("selected_office")
 
 
 def test_check_slots_with_known_office():

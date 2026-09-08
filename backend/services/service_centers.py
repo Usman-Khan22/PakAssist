@@ -161,6 +161,32 @@ def lookup_service_centers(
         )
 
     records = _load_centers(service_type)
+    # Resolve an explicit dataset office before interpreting the entire suffix
+    # after 'in' as a city. Preserve any separately specified city constraint.
+    named_records = [
+        record for record in records
+        if re.search(rf"(?<!\w){re.escape(str(record['office_name']))}(?!\w)", query, re.IGNORECASE)
+    ]
+    if named_records:
+        location_query = query
+        for record in named_records:
+            location_query = re.sub(re.escape(str(record["office_name"])), "", location_query, flags=re.IGNORECASE)
+        location_query = re.sub(
+            r"\bfor\s+(?:(?:passport|driving licen[cs]e)\s+)?(?:office\s*)?(?=$|[.!?])",
+            "", location_query, flags=re.IGNORECASE,
+        ).strip()
+        locations = _extract_locations(location_query, records) if re.search(
+            r"\b(?:in|near|at|around)\s+", location_query, re.IGNORECASE
+        ) else []
+        matches = [record for record in named_records if not locations or any(
+            _normalize(location) in _record_text(record) for location in locations
+        )]
+        return ServiceCenterLookupResult(
+            status="found" if matches else "no_results",
+            service_type=service_type,
+            location=", ".join(locations) if locations else ", ".join(str(record["office_name"]) for record in named_records),
+            centers=matches,
+        )
     locations = _extract_locations(query, records)
     if not locations:
         return ServiceCenterLookupResult(
