@@ -15,7 +15,15 @@ from typing import Dict, List, Optional
 
 HEADING_RE = re.compile(r"^##\s+(.*)$", re.MULTILINE)
 URL_RE = re.compile(r"https?://\S+")
-CONFIDENCE_RE = re.compile(r"confidence[:\s]*[-*]*\s*(\w+)", re.IGNORECASE)
+CONFIDENCE_RE = re.compile(
+    r"\bconfidence[\s*_]*:[\s*_]*(high|medium|low)\b", re.IGNORECASE
+)
+COPY_SUFFIX_RE = re.compile(r"(?:\s+\([0-9]+\))+$")
+
+
+def normalize_service_id(filename_stem: str) -> str:
+    """Remove download/copy counters, preserving all other service-name text."""
+    return COPY_SUFFIX_RE.sub("", filename_stem)
 
 
 @dataclass
@@ -62,7 +70,7 @@ def _extract_metadata_fields(metadata_section_text: str) -> Dict[str, Optional[s
 def load_markdown_file(path: Path) -> List[RagDocument]:
     """Parse one knowledge-base markdown file into a list of RagDocuments."""
     raw_text = path.read_text(encoding="utf-8")
-    service = path.stem  # e.g. "passport"
+    service = normalize_service_id(path.stem)  # e.g. "driving_license (1)"
     sections = _split_sections(raw_text)
 
     # Pull file-level metadata (authority/source_url/confidence) from the
@@ -99,7 +107,7 @@ def load_knowledge_base(kb_dir: str) -> List[RagDocument]:
 
     documents: List[RagDocument] = []
     for md_file in sorted(kb_path.glob("*.md")):
-        if md_file.name.lower() == "sources.md":
+        if normalize_service_id(md_file.stem).casefold() == "sources":
             continue  # a log of URLs, not user-facing service content
         documents.extend(load_markdown_file(md_file))
     return documents

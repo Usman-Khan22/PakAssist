@@ -30,9 +30,12 @@ export function useVoice(onTranscript: (text: string) => void, busy: boolean) {
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; stop(); }; }, []);
   const speak = async (text: string) => {
     if (!mounted.current) return;
-    stop(); setError(''); setStatus('speaking'); const token = generation.current;
+    stop(); setError('');
+    const summary = makeVoiceFriendly(text);
+    if (!summary) return;
+    setStatus('speaking'); const token = generation.current;
     try {
-      const blob = await synthesizeSpeech(makeVoiceFriendly(text).slice(0, 5000));
+      const blob = await synthesizeSpeech(summary);
       if (token !== generation.current) return;
       url.current = URL.createObjectURL(blob); const player = new Audio(url.current); audio.current = player;
       player.onended = stop;

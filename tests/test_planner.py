@@ -10,6 +10,7 @@ import pytest
 
 from backend.agents.planner import PlannerOutput, run_planner
 from backend.graph.graph import build_graph
+from langgraph.checkpoint.memory import InMemorySaver
 
 
 def _mock_response(intent: str, service_type: str, next_step: str) -> MagicMock:
@@ -96,6 +97,122 @@ def test_planner_receives_compact_context_for_follow_up(mock_get_client):
     assert '"service_type": "passport"' in contents
     assert '"office_options"' in contents
     assert "Show appointments for the first one." in contents
+
+
+@pytest.mark.parametrize(
+    "query,raw_service",
+    [
+        ("book my passport appointment", "passport"),
+        ("book an appointment for passport services in Karachi", "passport services"),
+        ("passport ka appointment book karwa do", "passport_service"),
+        (
+            "book an appointment for driving licence services in Lahore",
+            "driving licence services",
+        ),
+    ],
+)
+@patch("backend.agents.planner._get_client")
+def test_supported_appointment_aliases_route_to_demo_booking(
+    mock_get_client, query, raw_service
+):
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = _mock_response(
+        "book_appointment", raw_service, "appointment"
+    )
+    mock_get_client.return_value = mock_client
+
+    result = run_planner(query)
+
+    assert result == PlannerOutput(
+        intent="book_slot",
+        service_type=(
+            "driving_license" if "driving" in query else "passport"
+        ),
+        next_step="action",
+    )
+
+
+@patch("backend.agents.planner._get_client")
+def test_explicit_service_overrides_previous_appointment_context(mock_get_client):
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = _mock_response(
+        "book_appointment", "passport", "appointment"
+    )
+    mock_get_client.return_value = mock_client
+
+    result = run_planner(
+        "Also book a driving license appointment in Lahore.",
+        context={"service_type": "passport"},
+    )
+
+    assert result.service_type == "driving_license"
+    assert result.intent == "book_slot"
+    assert result.next_step == "action"
+
+
+@patch("backend.agents.planner._get_client")
+def test_appointment_follow_up_inherits_supported_service_context(mock_get_client):
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = _mock_response(
+        "book_appointment", "unknown", "appointment"
+    )
+    mock_get_client.return_value = mock_client
+
+    result = run_planner(
+        "Also book my appointment in Karachi.",
+        context={"service_type": "passport", "intent": "service_journey"},
+    )
+
+    assert result == PlannerOutput(
+        intent="book_slot", service_type="passport", next_step="action"
+    )
+
+
+@patch("backend.agents.planner._get_client")
+def test_exact_passport_services_booking_routes_to_demo_action(mock_get_client):
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = _mock_response(
+        "book_appointment", "passport", "appointment"
+    )
+    mock_get_client.return_value = mock_client
+
+    result = build_graph().invoke(
+        {
+            "user_input": (
+                "Also book my appointment for the passport services in Karachi"
+            )
+        }
+    )
+
+    assert result["intent"] == "book_slot"
+    assert result["service_type"] == "passport"
+    assert result["next_step"] == "action"
+    assert result["pending_clarification"] == "office"
+    assert "demo appointment" in result["response"]
+    assert "Karachi-I (South)" in result["response"]
+
+
+@patch("backend.agents.planner._get_client")
+def test_booking_follow_up_uses_same_session_passport_context(mock_get_client):
+    mock_client = MagicMock()
+    mock_client.models.generate_content.side_effect = [
+        _mock_response("service_journey", "passport", "knowledge"),
+        _mock_response("book_appointment", "unknown", "appointment"),
+    ]
+    mock_get_client.return_value = mock_client
+    graph = build_graph(checkpointer=InMemorySaver())
+    config = {"configurable": {"thread_id": "passport-booking-context"}}
+
+    first = graph.invoke({"user_input": "I need passport renewal."}, config=config)
+    second = graph.invoke(
+        {"user_input": "Also book my appointment in Karachi."}, config=config
+    )
+
+    assert first["service_type"] == "passport"
+    assert second["intent"] == "book_slot"
+    assert second["service_type"] == "passport"
+    assert second["next_step"] == "action"
+    assert "demo appointment" in second["response"]
 
 
 def _graph_state(user_input: str) -> dict:

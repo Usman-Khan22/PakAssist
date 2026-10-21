@@ -204,6 +204,24 @@ p { color: var(--muted); line-height: 1.7; }
 .message.user .message-bubble { background: var(--green-800); border-color: var(--green-800); color: white; border-radius: 16px 5px 16px 16px; }
 [dir="rtl"] .message.user .message-bubble { border-radius: 5px 16px 16px 16px; }
 .message-bubble > p { margin: 0; color: inherit; white-space: pre-wrap; }
+.markdown-response { color: inherit; overflow-wrap: anywhere; }
+.markdown-response > :first-child { margin-top: 0; }
+.markdown-response > :last-child { margin-bottom: 0; }
+.markdown-response h1, .markdown-response h2, .markdown-response h3,
+.markdown-response h4, .markdown-response h5, .markdown-response h6 {
+  margin: 18px 0 8px; color: var(--green-950); line-height: 1.3;
+}
+.markdown-response h1 { font-size: 1.3rem; }
+.markdown-response h2 { font-size: 1.15rem; }
+.markdown-response h3 { font-size: 1.02rem; }
+.markdown-response h4, .markdown-response h5, .markdown-response h6 { font-size: .94rem; }
+.markdown-response p { margin: 0 0 10px; white-space: pre-wrap; }
+.markdown-response ul, .markdown-response ol { margin: 8px 0 12px; padding-inline-start: 24px; }
+.markdown-response li { margin: 5px 0; padding-inline-start: 2px; }
+.markdown-response li > p { margin: 0; }
+.markdown-response strong { color: var(--green-950); font-weight: 750; }
+.markdown-response a { color: var(--green-800); text-decoration: underline; text-underline-offset: 2px; }
+.markdown-response input[type="checkbox"] { margin-inline-end: 7px; accent-color: var(--green-700); }
 .message.error .message-bubble { background: #fff2f2; border-color: #e5bcbc; color: var(--danger); }
 .message-actions { display: flex; align-items: center; gap: 7px; margin-top: 7px; }
 .message-action-button { color: var(--muted); }

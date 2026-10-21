@@ -33,7 +33,7 @@ LangGraph
   +-- Clarification
   |
 Response + sources -> Chat UI
-  +-- Shortened text -> /voice/tts -> OpenRouter Fish Audio -> MP3
+  +-- Shortened text -> /voice/tts -> Gemini TTS (Iapetus) -> WAV
 ```
 
 **Office lookup reads JSON directly; it does not use embeddings.** Markdown guidance uses the FAISS index. Rebuilding embeddings updates guidance; editing office JSON requires restarting the backend to refresh its cache.
@@ -52,7 +52,7 @@ Memory is process-local, not a persistent account. A backend restart clears sess
 | API and orchestration | Python, FastAPI, Pydantic, LangGraph, python-dotenv |
 | Generation | Google Gen AI SDK (`google-genai`), Gemini Planner and Knowledge models |
 | Retrieval and documents | Sentence Transformers / `all-MiniLM-L6-v2`, FAISS, NumPy, PyMuPDF, Pillow |
-| Voice | Browser SpeechRecognition; HTTPX and OpenRouter Fish Audio TTS |
+| Voice | Browser SpeechRecognition; google-genai and Gemini TTS (Iapetus) |
 
 ## Project Structure
 
@@ -80,7 +80,7 @@ PakAssist/
 
 - Python 3 with `venv` and pip. The repository does not pin a Python version; local integration was tested with Python 3.14.
 - Node.js and npm. The locked Vite toolchain requires Node `^20.19.0 || >=22.12.0`; Node 24 was used locally and supports the frontend test harness.
-- Git, internet access, a Gemini API key, and an OpenRouter API key for TTS. Model access and provider availability depend on your account.
+- Git, internet access, a backend Gemini API key with access to the configured TTS model. Model access and provider availability depend on your account.
 
 ## Installation
 
@@ -107,8 +107,9 @@ Copy-Item frontend/.env.example frontend/.env
 
 | Variable | Purpose / source default |
 | --- | --- |
-| `GEMINI_API_KEY` | Required for Planner, generated answers and image extraction |
-| `OPENROUTER_API_KEY` | Required for TTS; optional for typed-only use |
+| `GEMINI_API_KEY` | Required for Planner, generated answers, image extraction and TTS |
+| `TTS_MODEL` | Speech generation: `gemini-3.8-flash-lite-tts` |
+| `TTS_VOICE` | Prebuilt voice: `Iapetus` |
 | `PLANNER_MODEL` | Primary Planner: `gemini-3.5-flash-lite` |
 | `PLANNER_FALLBACK_MODEL` | Fallback Planner: `gemini-3.1-flash-lite` |
 | `GEMINI_MODEL` | Knowledge generation and multimodal extraction: `gemini-2.5-flash` |
@@ -119,7 +120,7 @@ Copy-Item frontend/.env.example frontend/.env
 | `RAG_MIN_SCORE` | Retrieval threshold: `0.15` |
 | `VITE_API_BASE_URL` | **Frontend env only:** `http://127.0.0.1:8001` (also the fallback) |
 
-`GEMINI_MODEL` is the actual Knowledge-model setting; `KNOWLEDGE_MODEL` is not used. TTS currently uses `fish-audio/s2.1-pro-free:free` in the backend source, with no environment override.
+`GEMINI_MODEL` is the actual Knowledge-model setting; `KNOWLEDGE_MODEL` is not used. TTS uses `TTS_MODEL=gemini-3.8-flash-lite-tts` and `TTS_VOICE=Iapetus`, reusing the backend `GEMINI_API_KEY`. Restart the backend after changing these settings.
 
 ### Build the Knowledge Index
 
@@ -178,7 +179,7 @@ Follow-ups should retain Driving Licence context. If verified fee data is unavai
 | `POST /sessions` | Creates a session; returns `session_id` |
 | `POST /chat` | JSON `{ "session_id": "...", "message": "..." }`; returns session ID, response and sources |
 | `POST /sessions/{session_id}/upload` | Multipart **`file` + `message`**, both required; returns the chat response contract |
-| `POST /voice/tts` | JSON `{ "text": "..." }`; returns `audio/mpeg` |
+| `POST /voice/tts` | JSON `{ "text": "..." }`; returns `audio/wav` |
 
 Uploads accept `.pdf`, `.png`, `.jpg`, `.jpeg` and `.webp`. TTS accepts nonempty text up to 5,000 characters. Journey and appointment interactions use chat; there is no separate structured dashboard API.
 
@@ -186,7 +187,9 @@ Uploads accept `.pdf`, `.png`, `.jpg`, `.jpeg` and `.webp`. TTS accepts nonempty
 
 Browser `SpeechRecognition` / `webkitSpeechRecognition` uses `en-PK`, `continuous = false` and `interimResults = true`. This is intentional for English, Roman Urdu and mixed speech with terms such as CNIC and Passport; recognition quality still depends on the browser.
 
-The final transcript uses the same chat flow and session as typed input. The full answer appears in chat, then `makeVoiceFriendly` shortens it without another LLM request. `/voice/tts` sends that text to OpenRouter Fish Audio and the browser plays the MP3. TTS failure reports a playback error without hiding a successful text answer.
+The final transcript uses the same chat flow and session as typed input. Typed messages show the full text answer without automatically requesting speech; use the existing **Read response** action to listen. Microphone messages automatically speak a concise summary after the full answer appears and chat loading clears. `makeVoiceFriendly` limits speech to at most three sentences and 500 characters without another LLM request, leaving detailed addresses, phone numbers, sources, confidence notes and long lists in the visible text. `/voice/tts` sends only this summary to Gemini TTS with Iapetus and the browser plays the returned WAV Blob. TTS failure reports a playback error without hiding a successful text answer or blocking the next message.
+
+The synchronous SDK runs in a worker thread with a 60-second request timeout and at most one retry for 429/503 responses. Native WAV is preserved; legacy 16-bit mono PCM is wrapped as WAV. Empty/oversized text returns 400; missing credentials and temporary provider exhaustion return 503; other provider failures or invalid audio return 502 without exposing provider details.
 
 Allow microphone access when prompted. Unsupported browsers retain typed chat; physical microphone and audible playback need testing on the demo machine.
 
@@ -204,7 +207,7 @@ The backend detects English, Urdu script and Roman Urdu, retaining the language 
 
 ## Security
 
-Keep Gemini and OpenRouter keys in the backend `.env` only. Never put them in `VITE_*` variables, which are public frontend configuration. `.env` files are Git-ignored; only safe examples should be committed. Supply your own credentials locally and use non-sensitive sample documents for a public demo: document extraction/generation can send content to Gemini, and spoken response text is sent to OpenRouter.
+Keep the Gemini key in the backend `.env` only. Never put them in `VITE_*` variables, which are public frontend configuration. `.env` files are Git-ignored; only safe examples should be committed. Supply your own credentials locally and use non-sensitive sample documents for a public demo: document extraction/generation can send content to Gemini, and spoken response text is sent to Gemini.
 
 ## Testing
 
@@ -212,7 +215,7 @@ From the repository root:
 
 ```powershell
 .\venv\Scripts\python.exe -m pytest tests -q -p no:cacheprovider
-node --test frontend/integration.test.cjs
+node --test frontend/integration.test.cjs frontend/chat-voice.test.cjs
 npm.cmd run build --prefix frontend
 ```
 

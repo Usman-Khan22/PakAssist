@@ -58,16 +58,19 @@ def _slot_key(service_type: str, office_name: str, date: str, time: str) -> str:
 def normalize_requested_time(query: str) -> str | None:
     """Extract a 24-hour HH:MM time from common user phrasing."""
     match = re.search(
-        r"\b([01]?\d|2[0-3])(?::([0-5]\d))?\s*(a\.?m\.?|p\.?m\.?)?\b",
+        r"(?<!\w)(?:(?P<hour_12>0?[1-9]|1[0-2])"
+        r"(?:(?::|\s+)(?P<minute_12>[0-5]\d))?\s*"
+        r"(?P<meridiem>a\.?m\.?|p\.?m\.?)|"
+        r"(?P<hour_24>[01]?\d|2[0-3]):(?P<minute_24>[0-5]\d))(?!\w)",
         query,
         re.IGNORECASE,
     )
     if not match:
         return None
 
-    hour = int(match.group(1))
-    minute = int(match.group(2) or 0)
-    meridiem = (match.group(3) or "").casefold().replace(".", "")
+    hour = int(match.group("hour_12") or match.group("hour_24"))
+    minute = int(match.group("minute_12") or match.group("minute_24") or 0)
+    meridiem = (match.group("meridiem") or "").casefold().replace(".", "")
     if meridiem == "pm" and hour < 12:
         hour += 12
     elif meridiem == "am" and hour == 12:

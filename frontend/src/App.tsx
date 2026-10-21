@@ -1,4 +1,5 @@
 import { useVoice } from './services/useVoice';
+import { AssistantMarkdown } from './components/AssistantMarkdown';
 import { createContext, useContext, useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Link, NavLink, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Building2, Check, CheckCheck, ChevronRight, CircleHelp, Copy, ExternalLink, FileText, Globe2, Menu, MessageCircle, Mic, Paperclip, Search, Send, ShieldCheck, Square, Trash2, Volume2, X } from 'lucide-react';
@@ -196,34 +197,43 @@ function MessageActions({ messageId, text }: { messageId: string; text: string }
   </div>;
 }
 
+type MessageOrigin = 'typed' | 'microphone';
+
 function ChatPage() {
   const { language, t } = useLanguage(); const [params] = useSearchParams();
   const [messages, updateMessages] = useState<ChatMessage[]>(conversation);
-  const setMessages = (value: ChatMessage[] | ((current: ChatMessage[]) => ChatMessage[])) => { conversation = typeof value === 'function' ? value(conversation) : value; updateMessages(conversation); }; const [input, setInput] = useState(params.get('q') ?? ''); const [upload, setUpload] = useState<Upload | undefined>(); const [loading, setLoading] = useState(false); const [fileError, setFileError] = useState(''); const [lastRequest, setLastRequest] = useState<{ text: string; upload?: Upload }>();
+  const setMessages = (value: ChatMessage[] | ((current: ChatMessage[]) => ChatMessage[])) => { conversation = typeof value === 'function' ? value(conversation) : value; updateMessages(conversation); }; const [input, setInput] = useState(params.get('q') ?? ''); const [upload, setUpload] = useState<Upload | undefined>(); const [loading, setLoading] = useState(false); const [fileError, setFileError] = useState(''); const [lastRequest, setLastRequest] = useState<{ text: string; upload?: Upload; origin: MessageOrigin }>();
   const fileRef = useRef<HTMLInputElement>(null); const endRef = useRef<HTMLDivElement>(null); const inputId = useId();
   const sending = useRef(false);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
   useEffect(() => () => { if (upload?.previewUrl) URL.revokeObjectURL(upload.previewUrl); }, [upload]);
   const chooseFile = (file?: File) => { setFileError(''); if (!file) return; if (!/\.(jpg|jpeg|png|webp|pdf)$/i.test(file.name)) { setFileError('Choose a JPG, PNG, WEBP, or PDF file.'); return; } if (upload?.previewUrl) URL.revokeObjectURL(upload.previewUrl); setUpload({ id: crypto.randomUUID(), file, name: file.name, size: file.size, mediaType: file.type, previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined }); };
-  const runSend = async (text: string, selectedUpload?: Upload, spoken = false) => {
+  const runSend = async (text: string, selectedUpload?: Upload, origin: MessageOrigin = 'typed') => {
     if ((!text.trim() && !selectedUpload) || sending.current) return;
-    sending.current = true; if (!spoken) voice.stop();
+    sending.current = true; if (origin === 'typed') voice.stop();
     const clean = text.trim() || 'Please inspect this uploaded document.';
     setMessages(current => [...current, { id: crypto.randomUUID(), role: 'user', text: selectedUpload ? clean + '\n' + selectedUpload.name : clean }]);
-    setInput(''); setUpload(undefined); setLoading(true); setLastRequest({ text: clean, upload: selectedUpload });
+    setInput(''); setUpload(undefined); setLoading(true); setLastRequest({ text: clean, upload: selectedUpload, origin });
+    let spokenAnswer: { id: string; text: string } | undefined;
     try {
       const session = await createSession();
       const result = await sendChatMessage({ sessionId: session.id, message: clean, language, upload: selectedUpload });
-      setMessages(current => [...current, { id: crypto.randomUUID(), role: 'assistant', text: result.response, result }]);
-      if (spoken) void voice.speak(result.response);
+      const id = crypto.randomUUID();
+      setMessages(current => [...current, { id, role: 'assistant', text: result.response, result }]);
+      if (origin === 'microphone') spokenAnswer = { id, text: result.response };
     } catch (error) {
       voice.stop();
       setMessages(current => [...current, { id: crypto.randomUUID(), role: 'assistant', text: error instanceof Error ? error.message : t('PakAssist is temporarily unavailable. Please try again.'), error: true }]);
     } finally { sending.current = false; setLoading(false); }
+    // Text and chat loading finish independently of audio generation/playback.
+    if (spokenAnswer) {
+      setReaderTarget({ type: 'message', id: spokenAnswer.id });
+      void voice.speak(spokenAnswer.text);
+    }
   };
   const [readerTarget, setReaderTarget] = useState<ReaderTarget>();
-  const voice = useVoice(text => { setInput(text); void runSend(text, upload, true); }, loading);
+  const voice = useVoice(text => { setInput(text); void runSend(text, upload, 'microphone'); }, loading);
   const voiceUi: VoiceUiIntegration = {
     voiceState: loading ? 'processing' : voice.status === 'unsupported' ? 'disabled' : voice.status === 'listening' ? 'listening' : voice.status === 'error' ? 'error' : 'idle',
     readAloudState: { status: voice.status === 'speaking' ? 'speaking' : 'idle', target: readerTarget },
@@ -232,7 +242,7 @@ function ChatPage() {
   const clearChat = () => { if (sending.current) return; voice.stop(); setMessages([]); conversation = []; setInput(''); setUpload(undefined); setFileError(''); setLastRequest(undefined); resetSession(); };
   return <VoiceUiContext.Provider value={voiceUi}><PageLayout><section className="chat-page"><div className="shell chat-shell"><div className="chat-heading"><div><p className="eyebrow">{t('Private session')}</p><h1>{t('PakAssist conversation')}</h1><p>{t('Session-based guidance')}</p></div><button className="button button-quiet" onClick={clearChat} disabled={loading || (!messages.length && !input)}><Trash2 size={18} />{t('Clear chat')}</button></div>
     <div className="chat-panel"><div className="messages" aria-live="polite">{messages.length === 0 && !loading && <div className="chat-empty"><span className="empty-mark"><MessageCircle /></span><h2>{t('Welcome to PakAssist')}</h2><p>{t('Ask a question to begin. You can also attach one image or PDF for the current message.')}</p><div className="suggestion-grid">{supportedServices.flatMap((service) => service.prompts.slice(0, 2)).map((prompt) => <button onClick={() => setInput(prompt)} key={prompt}>{t(prompt)}<ArrowRight size={16} /></button>)}</div></div>}
-      {messages.map((message) => <article className={`message ${message.role} ${message.error ? 'error' : ''}`} key={message.id}><span className="message-role">{message.role === 'user' ? t('You') : 'PakAssist'}</span><div className="message-bubble" id={`message-${message.id}`}><p dir="auto">{message.text}</p>{message.result && <><SourceList sources={message.result.sources} />{message.result.suggestions && <div className="followups">{message.result.suggestions.map((suggestion) => <button onClick={() => setInput(suggestion)} key={suggestion}>{t(suggestion)}</button>)}</div>}</>}{message.error && lastRequest && <button className="text-button" onClick={() => runSend(lastRequest.text, lastRequest.upload)}>{t('Try again')}</button>}</div>{message.role === 'assistant' && !message.error && <MessageActions messageId={message.id} text={message.text} />}</article>)}
+      {messages.map((message) => <article className={`message ${message.role} ${message.error ? 'error' : ''}`} key={message.id}><span className="message-role">{message.role === 'user' ? t('You') : 'PakAssist'}</span><div className="message-bubble" id={`message-${message.id}`}>{message.role === 'assistant' && !message.error ? <AssistantMarkdown text={message.text} /> : <p dir="auto">{message.text}</p>}{message.result && <><SourceList sources={message.result.sources} />{message.result.suggestions && <div className="followups">{message.result.suggestions.map((suggestion) => <button onClick={() => setInput(suggestion)} key={suggestion}>{t(suggestion)}</button>)}</div>}</>}{message.error && lastRequest && <button className="text-button" onClick={() => runSend(lastRequest.text, lastRequest.upload, lastRequest.origin)}>{t('Try again')}</button>}</div>{message.role === 'assistant' && !message.error && <MessageActions messageId={message.id} text={message.text} />}</article>)}
       {loading && <div className="message assistant"><span className="message-role">PakAssist</span><div className="message-bubble loading-bubble"><span /><span /><span /><em>{t(lastRequest?.upload ? 'Processing document…' : 'PakAssist is preparing a response')}</em></div></div>}<div ref={endRef} /></div>
       <div className="composer-wrap">{upload && <div className="upload-preview">{upload.previewUrl ? <img src={upload.previewUrl} alt="Attachment preview" /> : <FileText /> }<span><b className="ltr-text">{upload.name}</b><small>{(upload.size / 1024 / 1024).toFixed(1)} MB</small></span><button onClick={() => setUpload(undefined)} aria-label={t('Remove attachment')}><X size={18} /></button></div>}{fileError && <p className="field-error" role="alert">{fileError}</p>}
         <form className="composer" onSubmit={(event: FormEvent) => { event.preventDefault(); runSend(input, upload); }}><label className="sr-only" htmlFor={inputId}>{t('Type your message')}</label><textarea id={inputId} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); runSend(input, upload); } }} placeholder={t('Type your message')} rows={2} /><input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" hidden onChange={(event) => { chooseFile(event.target.files?.[0]); event.currentTarget.value = ''; }} /><button type="button" className="icon-button" onClick={() => fileRef.current?.click()} aria-label={t('Attach a file')} title={t('Attach a file')}><Paperclip /></button><VoiceButton /><button className="send-button" type="submit" disabled={loading || (!input.trim() && !upload)} aria-label={t('Send message')} title={t('Send message')}><Send /></button></form><p id="voice-input-status" className="voice-feedback" role={voice.error ? 'alert' : 'status'}>{voice.error || (voice.status === 'unsupported' ? t('Voice input is unsupported in this browser. You can continue typing.') : voice.status === 'listening' ? t('Listening…') + ' ' + voice.transcript : voice.status === 'speaking' ? t('Speaking…') : loading ? t('PakAssist is preparing a response') : '')}</p>{voice.status === 'speaking' && <button type="button" className="text-button" onClick={voice.stop}>{t('Stop reading')}</button>}<p className="composer-note">JPG, PNG, WEBP or PDF · one file per message</p></div>

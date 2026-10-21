@@ -1,4 +1,4 @@
-export type Language = 'en' | 'ur';
+export type Language = 'en' | 'ur' | 'sd';
 const STORAGE_KEY = 'pakassist-language';
 
 export const urduCopy: Record<string, string> = {
@@ -26,6 +26,42 @@ export const urduCopy: Record<string, string> = {
   'Open navigation':'نیویگیشن کھولیں','Close navigation':'نیویگیشن بند کریں','Main navigation':'مرکزی نیویگیشن','Choose language':'زبان منتخب کریں','Footer navigation':'فوٹر نیویگیشن','Skip to main content':'مرکزی مواد پر جائیں',
 };
 
-export function getInitialLanguage(): Language { return window.localStorage.getItem(STORAGE_KEY) === 'ur' ? 'ur' : 'en'; }
-export function applyLanguage(language: Language) { window.localStorage.setItem(STORAGE_KEY, language); document.documentElement.lang = language; document.documentElement.dir = language === 'ur' ? 'rtl' : 'ltr'; document.body.classList.toggle('urdu-mode', language === 'ur'); }
-export function translate(language: Language, english: string) { return language === 'ur' ? urduCopy[english] ?? english : english; }
+// TEMPORARY HACKATHON REGIONAL LANGUAGE DEMO: selected interface copy only.
+export const sindhiCopy: Record<string, string> = {
+  'Home': 'گھر', 'Services': 'خدمتون', 'Chat': 'ڳالهه ٻولهه', 'Dashboard': 'ڊيش بورڊ',
+  'How it works': 'هي ڪيئن ڪم ڪري ٿو', 'Official sources': 'سرڪاري ذريعا', 'About': 'اسان بابت',
+  'Ask PakAssist': 'پاڪ اسسٽ کان پڇو', 'Ask your question': 'پنهنجو سوال پڇو',
+  'Search or ask a question': 'ڳوليو يا سوال پڇو', 'Filter services': 'خدمتون ڳوليو',
+  'Government services, explained clearly.': 'سرڪاري خدمتون، سولي نموني سمجهايل.',
+  'Supported services': 'دستياب خدمتون', 'Supported assistance': 'دستياب مدد',
+  'Passport': 'پاسپورٽ', 'Driving licence': 'ڊرائيونگ لائسنس',
+  'Passport assistance': 'پاسپورٽ بابت رهنمائي', 'Driving licence assistance': 'ڊرائيونگ لائسنس بابت رهنمائي',
+  'Required Documents': 'گهربل دستاويز', 'Fees': 'فيسون', 'Processing Time': 'تياريءَ جو وقت',
+  'Eligibility': 'اهليت', 'Find Service Center': 'خدمت جو مرڪز ڳوليو',
+  'Grounded document checklists': 'معتبر دستاويزن جي فهرست',
+  'Fee guidance from trusted content': 'معتبر معلومات مان فيسن بابت رهنمائي',
+  'Available fee guidance': 'دستياب فيسن بابت رهنمائي',
+  'Service-centre lookup': 'خدمت جو مرڪز ڳوليو', 'Demo appointment flow': 'ڊيمو ملاقات جو عمل',
+  'View service': 'خدمت ڏسو', 'Back to services': 'خدمتن ڏانهن واپس',
+  'Type your message': 'پنهنجو پيغام لکو', 'Send message': 'پيغام موڪليو',
+  'Clear chat': 'ڳالهه ٻولهه صاف ڪريو', 'Try again': 'ٻيهر ڪوشش ڪريو',
+  'Attach a file': 'فائل ڳنڍيو', 'Remove attachment': 'ڳنڍيل فائل هٽايو',
+  'Welcome to PakAssist': 'پاڪ اسسٽ ۾ ڀليڪار', 'PakAssist conversation': 'پاڪ اسسٽ سان ڳالهه ٻولهه',
+  'You': 'توهان', 'Private session': 'نجي سيشن', 'Official source': 'سرڪاري ذريعو',
+  'My PakAssist Journey': 'منهنجو پاڪ اسسٽ سفر', 'Session overview': 'سيشن جو جائزو',
+  'Start a journey': 'سفر شروع ڪريو', 'No active journey yet': 'اڃا ڪو سفر شروع نه ٿيو آهي',
+  'Continue your journey': 'پنهنجو سفر جاري رکو', 'Your privacy': 'توهان جي رازداري',
+  'Read page': 'صفحو ٻڌو', 'Read response': 'جواب ٻڌو', 'Stop reading': 'ٻڌڻ بند ڪريو',
+  'Copy response': 'جواب نقل ڪريو', 'Copy': 'نقل ڪريو', 'Copied': 'نقل ٿي ويو',
+  'Choose language': 'ٻولي چونڊيو', 'Open navigation': 'مينيو کوليو', 'Close navigation': 'مينيو بند ڪريو',
+  'What documents do I need for a passport?': 'پاسپورٽ لاءِ ڪهڙا دستاويز گهرجن؟',
+  'How much does a passport cost?': 'پاسپورٽ جي فيس ڪيتري آهي؟',
+  'Find a passport office in Karachi': 'ڪراچي ۾ پاسپورٽ آفيس ڳوليو',
+  'What should I take for a driving licence?': 'ڊرائيونگ لائسنس لاءِ ڪهڙا دستاويز گهرجن؟',
+  'Prototype only. PakAssist is not a government authority and does not submit applications or make real bookings.': 'هي رڳو نمونو آهي. پاڪ اسسٽ سرڪاري ادارو ناهي؛ اهو درخواستون جمع يا حقيقي ملاقاتون بڪ نٿو ڪري.',
+  'This prototype does not submit government applications or make real bookings. Always confirm time-sensitive details on the official website.': 'هي نمونو سرڪاري درخواستون جمع يا حقيقي ملاقاتون بڪ نٿو ڪري. بدلجندڙ معلومات سرڪاري ويب سائيٽ تان پڪ ڪريو.',
+};
+
+export function getInitialLanguage(): Language { const saved = window.localStorage.getItem(STORAGE_KEY); return saved === 'ur' || saved === 'sd' ? saved : 'en'; }
+export function applyLanguage(language: Language) { window.localStorage.setItem(STORAGE_KEY, language); document.documentElement.lang = language; document.documentElement.dir = language === 'en' ? 'ltr' : 'rtl'; document.body.classList.toggle('urdu-mode', language === 'ur'); document.body.classList.toggle('sindhi-mode', language === 'sd'); }
+export function translate(language: Language, english: string) { return language === 'ur' ? urduCopy[english] ?? english : language === 'sd' ? sindhiCopy[english] ?? english : english; }

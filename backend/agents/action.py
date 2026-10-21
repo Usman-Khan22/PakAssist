@@ -10,6 +10,7 @@ from backend.services.appointment_simulator import (
     AppointmentResult,
     book_slot,
     check_slots,
+    normalize_requested_time,
 )
 from backend.services.journey import is_journey_request, journey_summary, update_journey
 from backend.services.language import message
@@ -169,6 +170,12 @@ def _resolve_office_reference(
 ) -> tuple[str | None, bool]:
     query = _normalize(state.get("user_input", ""))
     options = state.get("office_options") or []
+    selected = state.get("selected_office")
+
+    # A time selection belongs to the already-selected office. In particular,
+    # "for 14:00" must not be interpreted as office option 14.
+    if normalize_requested_time(state.get("user_input", "")) is not None:
+        return selected, False
 
     numeric_match = re.fullmatch(r"\d+", query) or re.search(
         r"\b(?:for|office|option|number)\s+(?:the\s+)?(\d+)\b", query
@@ -189,7 +196,6 @@ def _resolve_office_reference(
         if normalized_office in query or query in normalized_office:
             return office, False
 
-    selected = state.get("selected_office")
     if selected:
         return selected, False
     if len(options) == 1:
@@ -428,8 +434,14 @@ def _run_book_slot(state: PakAssistState) -> dict:
     )
     if result.status == "booked" and not booking_verified:
         booked_slots = list(state.get("booked_slots") or [])
+    response = _booking_response(result, language, verified=booking_verified)
+    if (
+        result.status in {"slot_not_found", "unavailable"}
+        and available_before.status == "available"
+    ):
+        response += "\n\n" + _availability_response(available_before, language)
     update = {
-        "response": _booking_response(result, language, verified=booking_verified),
+        "response": response,
         "sources": [],
         "pending_clarification": None,
         "pending_request": None,

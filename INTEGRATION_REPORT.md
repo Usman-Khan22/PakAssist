@@ -4,7 +4,7 @@
 
 Connected the completed frontend to real sessions, chat, source responses, uploads and TTS. Migrated microphone recognition and makeVoiceFriendly into the existing chat. Removed mock responses, mock result cards and the separate voice prototype. Retained static service information and the existing visual design.
 
-Small backend fixes: corrected Knowledge Agent instruction indentation, restored language/simple-language instructions, handled greetings and missing-document clarification, and corrected the service-center dataset filename. API routes, is_first_turn, thread memory, Planner retries/fallback, model separation and OpenRouter TTS remain intact.
+Small backend fixes: corrected Knowledge Agent instruction indentation, restored language/simple-language instructions, handled greetings and missing-document clarification, and corrected the service-center dataset filename. API routes, is_first_turn, thread memory, Planner retries/fallback and model separation remained intact in this historical run. TTS has since migrated to Gemini with Iapetus; see README for current setup.
 
 Final inspection additionally corrected six encoding-damaged Urdu translations and stale disconnected/upload-limit/status labels. No CSS, fonts, colours or responsive rules were changed.
 
@@ -42,7 +42,7 @@ Tests were aligned with the existing is_first_turn API argument, current dataset
 - POST /sessions creates a session lazily and deduplicates concurrent creation.
 - POST /chat sends session_id and message.
 - POST /sessions/{session_id}/upload sends multipart file and message, both required by live OpenAPI. Allowed extensions: PDF, PNG, JPG, JPEG, WEBP.
-- POST /voice/tts sends text and returns audio/mpeg.
+- POST /voice/tts sends text; the current Gemini implementation returns audio/wav.
 
 Typed and microphone inputs call the same runSend function and shared session service. The backend remains authoritative for context. Visible history survives navigation; a full reload resets visible history but retains the session ID. Backend restart requires clearing an expired chat.
 
@@ -78,4 +78,4 @@ From the repository root, in separate PowerShell terminals:
 npm.cmd run dev --prefix frontend
 ```
 
-Backend root .env: GEMINI_API_KEY, OPENROUTER_API_KEY (for voice). Optional existing overrides: PLANNER_MODEL, PLANNER_FALLBACK_MODEL, GEMINI_MODEL. Frontend: VITE_API_BASE_URL=http://127.0.0.1:8001, also the default fallback. Never expose provider keys through Vite. Existing dependencies were sufficient; no dependency changes were needed.
+Backend root .env: GEMINI_API_KEY (also used for voice); TTS_MODEL=gemini-3.8-flash-lite-tts and TTS_VOICE=Iapetus after the TTS migration. Optional existing overrides: PLANNER_MODEL, PLANNER_FALLBACK_MODEL, GEMINI_MODEL. Frontend: VITE_API_BASE_URL=http://127.0.0.1:8001, also the default fallback. Never expose provider keys through Vite. Existing dependencies were sufficient; no dependency changes were needed.

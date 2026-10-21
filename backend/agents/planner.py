@@ -13,6 +13,7 @@ into the graph state.
 
 import json
 import os
+import re
 import time
 from typing import Any, Literal, Mapping
 
@@ -103,6 +104,66 @@ Do not guess.
 Respond only with the requested structured fields.
 Do not include extra commentary.
 """
+
+
+_SERVICE_ALIASES = {
+    "passport": "passport",
+    "passport_service": "passport",
+    "passport_services": "passport",
+    "driving_license": "driving_license",
+    "driving_license_service": "driving_license",
+    "driving_license_services": "driving_license",
+    "driving_licence": "driving_license",
+    "driving_licence_service": "driving_license",
+    "driving_licence_services": "driving_license",
+}
+_EXPLICIT_SERVICE_PATTERNS = (
+    ("driving_license", re.compile(r"\bdriving\s+licen[cs]e(?:\s+services?)?\b", re.I)),
+    ("passport", re.compile(r"\bpassport(?:\s+services?)?\b", re.I)),
+)
+_BOOKING_REQUEST_RE = re.compile(
+    r"\b(?:book(?:ing)?|karwa(?:na)?|karwa\s+do)\b", re.I
+)
+_APPOINTMENT_RE = re.compile(r"\bappointments?\b", re.I)
+
+
+def _canonical_service(value: object) -> str:
+    normalized = re.sub(r"[^a-z]+", "_", str(value or "").casefold()).strip("_")
+    return _SERVICE_ALIASES.get(normalized, "unknown")
+
+
+def _explicit_service(user_input: str) -> str | None:
+    for service_type, pattern in _EXPLICIT_SERVICE_PATTERNS:
+        if pattern.search(user_input):
+            return service_type
+    return None
+
+
+def _normalize_output(
+    output: PlannerOutput,
+    user_input: str,
+    context: Mapping[str, Any] | None,
+) -> PlannerOutput:
+    """Normalize supported aliases and route supported booking requests to the demo."""
+    explicit_service = _explicit_service(user_input)
+    service_type = explicit_service or _canonical_service(output.service_type)
+    if service_type == "unknown" and context:
+        service_type = _canonical_service(context.get("service_type"))
+
+    booking_request = (
+        output.intent in {"book_appointment", "appointment_booking", "book_slot"}
+        or (
+            _APPOINTMENT_RE.search(user_input) is not None
+            and _BOOKING_REQUEST_RE.search(user_input) is not None
+        )
+    )
+    if booking_request and service_type != "unknown":
+        return PlannerOutput(
+            intent="book_slot",
+            service_type=service_type,
+            next_step="action",
+        )
+    return output.model_copy(update={"service_type": service_type})
 
 
 def _get_client() -> genai.Client:
@@ -244,9 +305,8 @@ def run_planner(
     try:
         data = json.loads(raw_text)
 
-        return PlannerOutput.model_validate(
-            data
-        )
+        output = PlannerOutput.model_validate(data)
+        return _normalize_output(output, user_input, context)
 
     except (
         json.JSONDecodeError,

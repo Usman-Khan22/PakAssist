@@ -8,7 +8,125 @@ from langgraph.checkpoint.memory import InMemorySaver
 from backend.agents.action import action_agent
 from backend.agents.planner import PlannerOutput
 from backend.graph.graph import build_graph
-from backend.services.appointment_simulator import book_slot, check_slots
+from backend.services.appointment_simulator import (
+    book_slot,
+    check_slots,
+    normalize_requested_time,
+)
+
+
+KARACHI_OFFICES = [
+    "Karachi-I (South)",
+    "Karachi-II (Central)",
+    "Karachi-III (West)",
+    "Karachi-IV (East)",
+    "Karachi-V (Awami Markaz)",
+]
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        ("14:00", "14:00"),
+        ("book 14:00", "14:00"),
+        ("2:00 pm", "14:00"),
+        ("2 00 pm", "14:00"),
+        ("2 30 pm would be fine", "14:30"),
+        ("Book 10 AM", "10:00"),
+        ("office 2", None),
+    ],
+)
+def test_normalize_requested_time(query, expected):
+    assert normalize_requested_time(query) == expected
+
+
+def test_office_selection_by_number_then_time_selection():
+    selected = action_agent(
+        {
+            "user_input": "1",
+            "intent": "book_slot",
+            "service_type": "passport",
+            "office_options": KARACHI_OFFICES,
+            "booked_slots": [],
+        }
+    )
+    assert selected["selected_office"] == "Karachi-I (South)"
+    assert "Which demo appointment time" in selected["response"]
+
+    booked = action_agent(
+        {
+            **selected,
+            "user_input": "book my slot for 14:00",
+            "intent": "book_slot",
+            "service_type": "passport",
+            "office_options": KARACHI_OFFICES,
+        }
+    )
+    assert booked["selected_office"] == "Karachi-I (South)"
+    assert "Simulated booking confirmed" in booked["response"]
+    assert "14:00" in booked["response"]
+
+
+def test_availability_check_preserves_office_for_later_time_selection():
+    availability = action_agent(
+        {
+            "user_input": "then which slots are available?",
+            "intent": "check_slots",
+            "service_type": "passport",
+            "office_options": KARACHI_OFFICES,
+            "selected_office": "Karachi-I (South)",
+            "booked_slots": [],
+        }
+    )
+    assert availability["selected_office"] == "Karachi-I (South)"
+    assert "14:00" in availability["response"]
+
+    booked = action_agent(
+        {
+            **availability,
+            "user_input": "14:00",
+            "intent": "book_slot",
+            "service_type": "passport",
+            "office_options": KARACHI_OFFICES,
+        }
+    )
+    assert booked["selected_office"] == "Karachi-I (South)"
+    assert "Simulated booking confirmed" in booked["response"]
+
+
+@pytest.mark.parametrize(
+    "query", ["14:00", "2:00 pm", "book 14:00", "book my slot for 14:00"]
+)
+def test_time_is_never_treated_as_office_number_after_selection(query):
+    result = action_agent(
+        {
+            "user_input": query,
+            "intent": "book_slot",
+            "service_type": "passport",
+            "office_options": KARACHI_OFFICES,
+            "selected_office": "Karachi-I (South)",
+            "booked_slots": [],
+        }
+    )
+    assert result["selected_office"] == "Karachi-I (South)"
+    assert "only 5 matching offices" not in result["response"]
+    assert "Simulated booking confirmed" in result["response"]
+
+
+def test_unavailable_spaced_time_lists_slots_for_selected_office():
+    result = action_agent(
+        {
+            "user_input": "2 30 pm would be fine",
+            "intent": "book_slot",
+            "service_type": "passport",
+            "office_options": KARACHI_OFFICES,
+            "selected_office": "Karachi-I (South)",
+            "booked_slots": [],
+        }
+    )
+    assert result["selected_office"] == "Karachi-I (South)"
+    assert "14:30" in result["response"]
+    assert "10:00, 11:30, 14:00" in result["response"]
 
 
 @pytest.mark.parametrize("query", [
